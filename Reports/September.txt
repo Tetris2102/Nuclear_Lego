@@ -1,0 +1,8 @@
+September progress report:
+  1. Enrolled on Sep. 18
+  2. Completed Written Proposal
+  3. Developed general hardware and software idea
+  4. Started software development, AABB intersection code
+     completed + started software skeleton
+  5. Created GitHub repository for reports + hardware and software
+     design (Oct. 1)
