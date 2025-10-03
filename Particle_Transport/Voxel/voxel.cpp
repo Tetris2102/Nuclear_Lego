@@ -1,4 +1,5 @@
 #include "voxel.h"
+#include "../Helpers/helpers.h"
 #include <algorithm>
 #include <cmath>
 
@@ -29,10 +30,7 @@ bool Voxel::intersects(Particle p) {
     double dz = p.getMomZ();
 
     // Normalize magnitude
-    double magnitude = std::sqrt(dx*dx + dy*dy + dz*dz);
-    dx /= magnitude;
-    dy /= magnitude;
-    dz /= magnitude;
+    normalizeVecXYZ(dx, dy, dz);
 
     if(dx == 0) {
         if(x <= xmin || x >= xmax) {
@@ -111,10 +109,7 @@ std::array<double, 2> Voxel::intersectParams(Particle p) {
     double dz = p.getMomZ();
 
     // Normalize magnitude
-    double magnitude = std::sqrt(dx*dx + dy*dy + dz*dz);
-    dx /= magnitude;
-    dy /= magnitude;
-    dz /= magnitude;
+    normalizeVecXYZ(dx, dy, dz);
 
     bool ignoreX, ignoreY, ignoreZ;
     ignoreX = (dx == 0);

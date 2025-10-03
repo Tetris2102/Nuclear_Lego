@@ -6,6 +6,7 @@
 #include <array>
 
 enum ParticleType {
+    NONE,
     ALPHA,
     BETA,
     GAMMA,
