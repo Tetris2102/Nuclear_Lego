@@ -19,10 +19,11 @@ void Voxel::moveToExit(Particle& p, double tmax) {
 }
 
 XSRecord Voxel::chooseEventAndXS(const Particle& p) {
-    std::array<double, 3> xss = material.getEventXSs(p);
+    std::array<XSRecord, 3> records = material.getEventRecords(p);
+    std::array<double, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
     std::discrete_distribution<int> discrete_dist{xss.begin(), xss.end()};
-    XSRecord chosen = xss[discrete_dist(generator)];
-    return xsChosen;
+    XSRecord recordChosen = records[discrete_dist(generator)];
+    return recordChosen;
 }
 
 std::vector<Particle> Voxel::processParticle(Particle& p) {
@@ -34,7 +35,9 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     double prob = getTotalIntProb(p, tmax);
     if(uniform_real_dist(generator) > prob) return {};
 
-
+    // Choose record to use (including EventType, cross-section, etc.)
+    XSRecord record = chooseEventAndXS(p);
+    
 }
 
 bool Voxel::intersects(const Particle& p) {

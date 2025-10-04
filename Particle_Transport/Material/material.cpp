@@ -31,6 +31,6 @@ std::array<double, 3> Material::getEventXSs(const Particle& incP) {
 		return xss;
 }
 
-std::array<XSRecord, 3> Material::getEventRecord(const Particle& incP) {
+std::array<XSRecord, 3> Material::getEventRecords(const Particle& incP) {
 		return xstable.findEventRecords(incP);
 }
