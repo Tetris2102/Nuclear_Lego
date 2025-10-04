@@ -46,7 +46,7 @@ struct XSRecord {
     EventType event;
     ParticleType incParticle;
     ParticleType finalParticle;
-    short int finalParticleCount;
+    short int finalParticleCount;  // How many particles in total after event
     double xs;
     double energy;
 };
@@ -57,11 +57,16 @@ class XSTable {
     public:
         XSTable() {}
 
-        void addRecord(EventType evType, ParticleType incPT, ParticleType finPT,
+        // ABSORB
+        void addRecordA(ParticleType incPT, double xs, double energy);
+        // SCATTER
+        void addRecordS(ParticleType incPT, double xs, double energy);
+        // REACTION
+        void addRecordR(ParticleType incPT, ParticleType finPT,
           short int finPCount, double xs, double energy);
-        XSRecord findRecord(EventType et, Particle incP);
+        XSRecord findRecord(EventType et, const Particle& incP);
         // Finds the best record for every EventType
-        std::array<XSRecord, 3> findEventRecords(Particle incP);
+        std::array<XSRecord, 3> findEventRecords(const Particle& incP);
 };
 
 #endif

@@ -3,7 +3,6 @@
 #ifndef IsotopeSample_H
 #define IsotopeSample_H
 
-#include "../Material/material.h"
 #include <string>
 #include <vector>
 #include <array>
@@ -16,19 +15,17 @@ class IsotopeSample {
         double activity;
         ParticleType emissionParticle;
         double emissionEnergy;
-        Material surroundMaterial;
 
         // RNG for generateParticles()
         std::random_device rd;
-        std::mt19937 generator(rd());
-        std::uniform_real_distribution<double> distribution(0.0, 1.0);
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> dist(0.0, 1.0);
 
         void normalizeV(std::array<double, 3> &dirXYZ);
     public:
         // Not radioactive by default (0 decays per second)
-        IsotopeSample(string name, short int atomicMass, double activity = 0.0,
-          ParticleType emissionParticle, double emissionEnergy,
-          Material surroundMaterial) : surroundMaterial(surroundMaterial) {
+        IsotopeSample(string name, ParticleType emissionParticle,
+          double emissionEnergy, double activity = 0.0) {
             this->name = name;
             this->activity = activity;
             this->emissionParticle = emissionParticle;
@@ -43,7 +40,7 @@ class IsotopeSample {
         double getActivity();
         void setEmitParticleType(ParticleType pt);
         ParticleType getEmitParticleType();
-        Material getSurroundMaterial();
+        double getEmitEnergy();
 };
 
 #endif

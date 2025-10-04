@@ -2,15 +2,42 @@
 #include "../Helpers/helpers.h"
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
-std::vector<Particle> Voxel::processParticle(Particle& p) {
-    // Check if particle intersects the voxel
-    std::array<double, 2> params = intersectParams(p);
-    if(params[1] - params[0] <= 0) return {};
-    return {};
+double Voxel::getTotalIntProb(const Particle& p, double travelDist) {
+    std::array<double, 3> xss = material.getEventXSs(p);
+    double macroXSA = 1.0 / (material.getADensity() * xss[0]);
+    double macroXSS = 1.0 / (material.getADensity() * xss[1]);
+    double macroXSR = 1.0 / (material.getADensity() * xss[2]);
+
+    double totMacroXS = macroXSA + macroXSS + macroXSR;
+    return std::exp(-totMacroXS * travelDist);
 }
 
-bool Voxel::intersects(Particle p) {
+void Voxel::moveToExit(Particle& p, double tmax) {
+    p.setPosition(pointAlongVec(p.getPosition(), p.getMomentum(), tmax));
+}
+
+XSRecord Voxel::chooseEventAndXS(const Particle& p) {
+    std::array<double, 3> xss = material.getEventXSs(p);
+    std::discrete_distribution<int> discrete_dist{xss.begin(), xss.end()};
+    XSRecord chosen = xss[discrete_dist(generator)];
+    return xsChosen;
+}
+
+std::vector<Particle> Voxel::processParticle(Particle& p) {
+    // Check if particle passes through Voxel
+    if(!intersects(p)) return {};
+
+    // Check if particle will undergo any event
+    double tmax = intersectParams(p)[1];
+    double prob = getTotalIntProb(p, tmax);
+    if(uniform_real_dist(generator) > prob) return {};
+
+
+}
+
+bool Voxel::intersects(const Particle& p) {
     double xmin, ymin, zmin;
     xmin = position[0] - halfSide;
     ymin = position[1] - halfSide;
@@ -89,7 +116,7 @@ bool Voxel::intersects(Particle p) {
     return (tmax > tmin) ? true : false;
 }
 
-std::array<double, 2> Voxel::intersectParams(Particle p) {
+std::array<double, 2> Voxel::intersectParams(const Particle& p) {
     double xmin, ymin, zmin;
     xmin = position[0] - halfSide;
     ymin = position[1] - halfSide;
@@ -173,7 +200,7 @@ std::array<double, 3> Voxel::getPosition() {
     return position;
 }
 
-void Voxel::setMaterial(Material m) {
+void Voxel::setMaterial(const Material& m) {
     material = m;
 }
 

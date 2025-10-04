@@ -1,18 +1,11 @@
 // isotopeSample.cpp
 
 #include "isotopeSample.h"
+#include "../Helpers/helpers/h"
 #include <string>
 #include <vector>
 #include <array>
 #include <cmath>
-
-void normalizeV(std::array<double, 3> &dirXYZ) {
-    double magnitude = std::sqrt(dirXYZ[0] * dirXYZ[0] + dirXYZ[1] * dirXYZ[1] +
-      dirXYZ[2] * dirXYZ[2]);
-    dirXYZ[0] /= magnitude;
-    dirXYZ[1] /= magnitude;
-    dirXYZ[2] /= magnitude;
-}
 
 std::vector<Particle> IsotopeSample::generateParticles(double timeElapsed,
   std::array<double, 3> originXYZ) {
@@ -20,9 +13,9 @@ std::vector<Particle> IsotopeSample::generateParticles(double timeElapsed,
 
     int decays = activity * timeElapsed;
     for(int i = 0; i<decays; i++) {
-        std::array<double, 3> mom = {distribution(generator),
-          distribution(generator), distribution(generator)};
-        normalizeV(mom);
+        std::array<double, 3> mom = {dist(gen),
+          dist(gen), dist(gen)};
+        normalizeVec3Arr(mom);
         Particle p(emissionParticle, emissionEnergy, originXYZ, mom);
         particles.push_back(p);
     }
@@ -49,6 +42,6 @@ ParticleType IsotopeSample::getEmitParticleType() {
     return emissionParticle;
 }
 
-Material IsotopeSample::getSurroundMaterial() {
-    return surroundMaterial;
+double IsotopeSample::getEmitEnergy() {
+  return emissionEnergy;
 }

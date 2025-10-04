@@ -5,6 +5,7 @@
 // large fluxes, i.e. treat one particle as many having the same parameters
 
 #include "../Material/material.h"
+#include "../IsotopeSample/isotopeSample.h"
 #include <array>
 #include <vector>
 
@@ -22,6 +23,17 @@ class Voxel {
         double halfSide;  // sidelength / 2
         std::array<double, 3> position;
         Material material;
+
+        // Probability of any interaction happening
+        double getTotalIntProb(const Particle& p, double travelDist);
+        // Move particle to the point where it exits Voxel
+        void moveToExit(Particle& p, double tmax);
+        EventType chooseEvent(const Particle& p);
+
+        // RNG for
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> uniform_real_dist(0.0, 1.0);
     public:
 
         // For MATTER andf DETECTOR
@@ -33,18 +45,19 @@ class Voxel {
 
         // For SOURCE
         Voxel(double side, std::array<double, 3> position,
-            const IsotopeSample& i) : IsotopeSample(i) {
+            const IsotopeSample& isotopeSample) {
             this->halfSide = side / 2;
             this->position = position;
+            this->isotopeSample = isotopeSample;
         }
 
         // Manage reactions and their probabilities for a particle
-        // Returns a vector of particles created (if any)
+        // Returns vector of particles created (if any)
         std::vector<Particle> processParticle(Particle& p);
-        bool intersects(Particle p);
-        std::array<double, 2> intersectParams(Particle p);  // returns [tmin, tmax]
+        bool intersects(const Particle& p);
+        std::array<double, 2> intersectParams(const Particle& p);  // returns [tmin, tmax]
         std::array<double, 3> getPosition();
-        void setMaterial(Material m);
+        void setMaterial(const Material& m);
         Material getMaterial();
 };
 

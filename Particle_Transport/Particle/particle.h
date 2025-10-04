@@ -10,8 +10,7 @@ enum ParticleType {
     ALPHA,
     BETA,
     GAMMA,
-    NEUTRON,
-    PROTON
+    NEUTRON
 };
 
 class Particle {

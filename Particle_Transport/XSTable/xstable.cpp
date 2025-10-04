@@ -2,6 +2,7 @@
 
 #include "xstable.h"
 #include <cmath>
+#include <stdexcept>
 
 // EventType XSTable::getEventType() {
 //     return eventType;
@@ -40,13 +41,23 @@
 //     }
 // }
 
-void XSTable::addRecord(EventType evType, ParticleType incPT, ParticleType finPT,
-  short int finPCount, double xs, double energy) {
-    XSRecord r = {evType, incPT, finPT, finPCount, xs, energy};
+void XSTable::addRecordA(ParticleType incPT, double xs, double energy) {
+    XSRecord r = {ABSORB, incPT, NONE, 0, xs, energy};
     records.push_back(r);
-  }
+}
 
-XSRecord XSTable::findRecord(EventType et, Particle incP) {
+void XSTable::addRecordS(ParticleType incPT, double xs, double energy) {
+    XSRecord r = {SCATTER, incPT, incPT, 1, xs, energy};
+    records.push_back(r);
+}
+
+void XSTable::addRecordR(ParticleType incPT, ParticleType finPT,
+  short int finPCount, double xs, double energy) {
+    XSRecord r = {REACTION, incPT, finPT, finPCount, xs, energy};
+    records.push_back(r);
+}
+
+XSRecord XSTable::findRecord(EventType et, const Particle& incP) {
     std::vector<XSRecord> particleMatch;
     ParticleType type = incP.getType();
     double energy = incP.getEnergy();
@@ -57,7 +68,9 @@ XSRecord XSTable::findRecord(EventType et, Particle incP) {
 
     // If no records found, return 0.0 cross-section if none found
     // Particle remains the same
-    if(particleMatch.size() == 0) return XSRecord{et, type, type, 0, 0.0, energy};
+    if(particleMatch.size() == 0) {
+        return XSRecord{et, type, type, 1, 0.0, energy};
+    }
 
     double diff = std::numeric_limits<double>::infinity();
     XSRecord match;
@@ -71,7 +84,7 @@ XSRecord XSTable::findRecord(EventType et, Particle incP) {
 }
 
 // Find the best fitting record for each EventType of a given particle
-std::array<XSRecord, 3> XSTable::findEventRecords(Particle incP) {
+std::array<XSRecord, 3> XSTable::findEventRecords(const Particle& incP) {
     std::array<XSRecord, 3> eventRecords;
     // Used to loop through EventType
     // Same order as in EventType definition
@@ -92,8 +105,7 @@ std::array<XSRecord, 3> XSTable::findEventRecords(Particle incP) {
         // If no records found, return 0.0 cross-section if none found
         // Particle remains the same
         if(firstMatches.size() == 0) {
-            eventRecords[i] = XSRecord{events[i], type,
-              type, 0, 0.0, energy};
+            eventRecords[i] = XSRecord{events[i], type, type, 0, 0.0, energy};
             continue;
         }
 
