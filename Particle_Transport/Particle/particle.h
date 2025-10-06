@@ -3,6 +3,7 @@
 #ifndef PARTICLE_H
 #define PARTICLE_H
 
+#include "../Vector3/vector3.h"
 #include <array>
 
 enum ParticleType {
@@ -20,16 +21,16 @@ class Particle {
         double E = 0.0f;  // energy
 
         // Position
-        std::array<double, 3> position = {0.0, 0.0, 0.0};
+        Vector3 position = {0.0, 0.0, 0.0};
         // Momentum
-        std::array<double, 3> mom = {0.0, 0.0, 0.0};
+        Vector3 mom = {0.0, 0.0, 0.0};
     public:
-        Particle(ParticleType type, double energy, std::array<double, 3> position,
-            std::array<double, 3> momentumXYZ) {
-            this->type = type;
-            this->E = energy;
-            this->position = position;
-            this->mom = momentumXYZ;
+        Particle(ParticleType _type, double _energy, Vector3 _position,
+          Vector3 _momentumXYZ) {
+            type = _type;
+            E = _energy;
+            position = _position;
+            mom = _momentumXYZ;
         }
 
         void setEnergy(double newE);
@@ -39,14 +40,14 @@ class Particle {
         void deactivate();
         bool isActive();
 
-        void setMomentum(std::array<double, 3> newMom);
-        std::array<double, 3> getMomentum();
+        void setMomentum(Vector3 newMom);
+        Vector3 getMomentum();
         double getMomX();
         double getMomY();
         double getMomZ();
 
-        void setPosition(std::array<double, 3> newPos);
-        std::array<double, 3> getPosition();
+        void setPosition(Vector3 newPos);
+        Vector3 getPosition();
         double getX();
         double getY();
         double getZ();

@@ -22,12 +22,12 @@ class Material {
         XSTable xstable;
         IsotopeSample isotopeSample = IsotopeSample{"notRadioactive", NONE, 0.0};
     public:
-        Material(std::string name, short int atomicMass, double density,
-          XSTable xstable) : xstable(xstable) {
-            this->name = name;
-            this->atomicMass = atomicMass;
-            this->density = density;
-            this->atomicDensity = (density / atomicMass) * AVOGADRO;
+        Material(std::string _name, short int _atomicMass, double _density,
+          XSTable _xstable) : xstable(_xstable) {
+            name = _name;
+            atomicMass = _atomicMass;
+            density = _density;
+            atomicDensity = (_density / _atomicMass) * AVOGADRO;
         }
 
         std::string getName();

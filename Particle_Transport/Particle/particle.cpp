@@ -26,42 +26,42 @@ bool Particle::isActive() {
     return exists;
 }
 
-void Particle::setMomentum(std::array<double, 3> newMom) {
+void Particle::setMomentum(Vector3 newMom) {
     mom = newMom;
 }
 
-std::array<double, 3> Particle::getMomentum() {
+Vector3 Particle::getMomentum() {
     return mom;
 }
 
 double Particle::getMomX() {
-    return mom[0];
+    return mom.x;
 }
 
 double Particle::getMomY() {
-    return mom[1];
+    return mom.y;
 }
 
 double Particle::getMomZ() {
-    return mom[2];
+    return mom.z;
 }
 
-void Particle::setPosition(std::array<double, 3> newPos) {
+void Particle::setPosition(Vector3 newPos) {
     position = newPos;
 }
 
-std::array<double, 3> Particle::getPosition() {
+Vector3 Particle::getPosition() {
     return position;
 }
 
 double Particle::getX() {
-    return position[0];
+    return position.x;
 }
 
 double Particle::getY() {
-    return position[1];
+    return position.y;
 }
 
 double Particle::getZ() {
-    return position[2];
+    return position.z;
 }

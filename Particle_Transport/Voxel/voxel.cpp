@@ -1,5 +1,6 @@
 #include "voxel.h"
 #include "../Helpers/helpers.h"
+#include "../Particle/particle.h"
 #include <algorithm>
 #include <cmath>
 #include <utility>
@@ -14,16 +15,28 @@ double Voxel::getTotalIntProb(const Particle& p, double travelDist) {
     return std::exp(-totMacroXS * travelDist);
 }
 
-void Voxel::moveToExit(Particle& p, double tmax) {
-    p.setPosition(pointAlongVec(p.getPosition(), p.getMomentum(), tmax));
-}
-
 XSRecord Voxel::chooseEventAndXS(const Particle& p) {
     std::array<XSRecord, 3> records = material.getEventRecords(p);
     std::array<double, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
     std::discrete_distribution<int> discrete_dist{xss.begin(), xss.end()};
-    XSRecord recordChosen = records[discrete_dist(generator)];
+    XSRecord recordChosen = records[discrete_dist(gen)];
     return recordChosen;
+}
+
+double Voxel::getIntDistAlong(double xs, double tmin, double tmax) {
+    double u = uniform_real_dist(gen);
+    double sigma = material.getADensity() * xs;  // Macroscopic cross-section
+    // Use cumulative distribution function, i.e. probability of interaction
+    // increases along particle path
+    return tmin - (1/sigma) * std::log(1 - u*(1-std::exp(-sigma*(tmax-tmin))));
+}
+
+Vector3 getScatterMomentum(Vector3 oldMom,
+  double energy) {
+    double theta_max = REF_THETA / std::sqrt(energy);
+    double theta = uniform_real_dist(gen) * theta_max;
+    double phi = uniform_real_dist(gen) * TWO_PI;
+
 }
 
 std::vector<Particle> Voxel::processParticle(Particle& p) {
@@ -31,13 +44,31 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     if(!intersects(p)) return {};
 
     // Check if particle will undergo any event
+    double tmin = intersectParams(p)[0];
     double tmax = intersectParams(p)[1];
     double prob = getTotalIntProb(p, tmax);
-    if(uniform_real_dist(generator) > prob) return {};
+    if(uniform_real_dist(generator) > prob) {
+        moveToPointAlong(p, tmax);  // Particle just passes through
+        return {};
+    }
 
     // Choose record to use (including EventType, cross-section, etc.)
     XSRecord record = chooseEventAndXS(p);
-    
+
+    std::vector<Particle> particlesCreated;
+
+    if(record.event == SCATTER) {
+
+    } else if(record.event == ABSORB) {
+        // No need in two lines below since particle is deactivated anyway
+        // double t = getIntDistAlong(record.xs, tmin, tmax);
+        // moveToPointAlong(p, t);
+        p.deactivate();
+    } else {
+
+    }
+
+    return particlesCreated;
 }
 
 bool Voxel::intersects(const Particle& p) {
@@ -199,7 +230,7 @@ std::array<double, 2> Voxel::intersectParams(const Particle& p) {
     return {tmin, tmax};
 }
 
-std::array<double, 3> Voxel::getPosition() {
+Vector3 Voxel::getPosition() {
     return position;
 }
 

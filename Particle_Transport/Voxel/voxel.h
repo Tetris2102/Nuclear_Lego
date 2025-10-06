@@ -6,8 +6,10 @@
 
 #include "../Material/material.h"
 #include "../IsotopeSample/isotopeSample.h"
+#include "../Vector3/vector3.h"
 #include <array>
 #include <vector>
+#include <random>
 
 enum VoxelType {
     SOURCE,
@@ -15,20 +17,30 @@ enum VoxelType {
     DETECTOR
 };
 
+// IsotopeSample for stable voxels (MATTER or DETECTOR)
+IsotopeSample stable();
+
+// Reference value of elastic scattering angle at 1 MeV in radians
+// unit: radians * sqrt(MeV)
+#define REF_THETA 0.349  // approx. 10 degrees * sqrt(MeV)
+#define TWO_PI 6.283
+
 // Voxels are treated as spaces for cubes, not actual objects,
 // so that they remain when cube's position or material is changed
 class Voxel {
     private:
         VoxelType type;
         double halfSide;  // sidelength / 2
-        std::array<double, 3> position;
+        Vector3 position;
         Material material;
+        IsotopeSample sample = stable;
 
         // Probability of any interaction happening
         double getTotalIntProb(const Particle& p, double travelDist);
-        // Move particle to the point where it exits Voxel
-        void moveToExit(Particle& p, double tmax);
-        EventType chooseEvent(const Particle& p);
+        EventType chooseEventAndXS(const Particle& p);
+        double getIntDistAlong(const Particle& p, double xs,
+          double tmin, double tmax);
+        Vector3 getScatterMomentum(Vector3 oldMom, double energy);
 
         // RNG for
         std::random_device rd;
@@ -37,18 +49,18 @@ class Voxel {
     public:
 
         // For MATTER andf DETECTOR
-        Voxel(double side, std::array<double, 3> position,
-            const Material& m) : material(m) {
-            this->halfSide = side / 2;
-            this->position = position;
+        Voxel(double _side, Vector3 _position,
+          const Material& _m) : material(_m) {
+            halfSide = _side / 2;
+            position = _position;
         }
 
         // For SOURCE
-        Voxel(double side, std::array<double, 3> position,
-            const IsotopeSample& isotopeSample) {
-            this->halfSide = side / 2;
-            this->position = position;
-            this->isotopeSample = isotopeSample;
+        Voxel(double _side, Vector3 _position, const Material& _m
+          const IsotopeSample& _s) : material(_m), sample(_s) {
+            halfSide = _side / 2;
+            position = _position;
+            isotopeSample = _isotopeSample;
         }
 
         // Manage reactions and their probabilities for a particle
@@ -56,7 +68,7 @@ class Voxel {
         std::vector<Particle> processParticle(Particle& p);
         bool intersects(const Particle& p);
         std::array<double, 2> intersectParams(const Particle& p);  // returns [tmin, tmax]
-        std::array<double, 3> getPosition();
+        Vector3 getPosition();
         void setMaterial(const Material& m);
         Material getMaterial();
 };

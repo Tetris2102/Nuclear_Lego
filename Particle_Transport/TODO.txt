@@ -1,6 +1,6 @@
+0. Add moveToPointAlong() to Particle instead of helpers.cpp
 1. Replace std::array<double, 3> with struct Vec3
 2. Adjust data types where double is excessive (if needed)
 3. Explicitly include all used headers in every implementation file
 instead of chaining #include in files
 4. Finish data.cpp
-5. Create a github repo for code

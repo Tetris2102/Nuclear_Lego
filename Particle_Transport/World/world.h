@@ -13,11 +13,13 @@ class World {
 
         std::vector<std::vector<std::vector<Voxel>>> scene;
         std::vector<Particle> particles = {};
+
+        void cleanUnactiveP();
     public:
-        World(short int cellsX, short int cellsY, short int cellsZ) {
-            this->cellsX = cellsX;
-            this->cellsY = cellsY;
-            this->cellsZ = cellsZ;
+        World(short int _cellsX, short int _cellsY, short int _cellsZ) {
+            cellsX = _cellsX;
+            cellsY = _cellsY;
+            cellsZ = _cellsZ;
         }
 
         void setScene(std::vector<std::vector<std::vector<Voxel>>> scene);

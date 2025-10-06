@@ -8,14 +8,13 @@
 #include <cmath>
 
 std::vector<Particle> IsotopeSample::generateParticles(double timeElapsed,
-  std::array<double, 3> originXYZ) {
+  Vector3 originXYZ) {
     std::vector<Particle> particles;
 
     int decays = activity * timeElapsed;
     for(int i = 0; i<decays; i++) {
-        std::array<double, 3> mom = {dist(gen),
-          dist(gen), dist(gen)};
-        normalizeVec3Arr(mom);
+        Vector3 mom(dist(gen), dist(gen), dist(gen));
+        mom.normalize();
         Particle p(emissionParticle, emissionEnergy, originXYZ, mom);
         particles.push_back(p);
     }
