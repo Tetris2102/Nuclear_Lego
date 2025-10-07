@@ -8,7 +8,7 @@ Vector3 Vector3::operator-(const Vector3& v) const {
     return Vector3(x - v.x, y - v.y, z - v.z);
 }
 
-Vector3 operator*(double a) {
+Vector3 operator*(double a) const {
     return Vector3(x * a, y * a, z * a);
 }
 
@@ -29,6 +29,11 @@ void Vector3::normalize() {
     x /= magnitude;
     y /= magnitude;
     z /= magnitude;
+}
+
+Vector3 Vector3::normalize() {
+    normalize();
+    return *this;
 }
 
 void Vector3::randomOrthogonalV3(double u_x,

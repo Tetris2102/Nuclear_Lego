@@ -23,7 +23,7 @@ XSRecord Voxel::chooseEventAndXS(const Particle& p) {
     return recordChosen;
 }
 
-double Voxel::getIntDistAlong(double xs, double tmin, double tmax) {
+double Voxel::chooseIntDistAlong(double xs, double tmin, double tmax) {
     double u = uniform_real_dist(gen);
     double sigma = material.getADensity() * xs;  // Macroscopic cross-section
     // Use cumulative distribution function, i.e. probability of interaction
@@ -31,12 +31,15 @@ double Voxel::getIntDistAlong(double xs, double tmin, double tmax) {
     return tmin - (1/sigma) * std::log(1 - u*(1-std::exp(-sigma*(tmax-tmin))));
 }
 
-Vector3 getScatterMomentum(Vector3 oldMom,
-  double energy) {
+Vector3 Voxel::getScatterMomentum(const Vector3& oldMom, double energy) {
     double theta_max = REF_THETA / std::sqrt(energy);
     double theta = uniform_real_dist(gen) * theta_max;
     double phi = uniform_real_dist(gen) * TWO_PI;
-
+    Vector3 randOrthVec = oldMom.randomOrthogonalV3(uniform_real_dist(gen),
+      uniform_real_dist(gen), uniform_real_dist(gen));
+    Vector3 scatterMom = (oldMom * std::cos(theta) +
+      randOrthVec.cross(oldMom) * std::sin(theta));
+    return scatterMom.normalize();
 }
 
 std::vector<Particle> Voxel::processParticle(Particle& p) {
@@ -48,7 +51,7 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     double tmax = intersectParams(p)[1];
     double prob = getTotalIntProb(p, tmax);
     if(uniform_real_dist(generator) > prob) {
-        moveToPointAlong(p, tmax);  // Particle just passes through
+        p.moveToPointAlong(tmax);  // Particle just passes through
         return {};
     }
 
@@ -58,14 +61,36 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     std::vector<Particle> particlesCreated;
 
     if(record.event == SCATTER) {
-
+        double intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
+        p.moveToPointAlong(intDistAlong);
+        p.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy()));
+        tmax = intersectParams[1];
+        p.moveToPointAlong(tmax); // Advance particle to exit of Voxel
     } else if(record.event == ABSORB) {
         // No need in two lines below since particle is deactivated anyway
         // double t = getIntDistAlong(record.xs, tmin, tmax);
-        // moveToPointAlong(p, t);
+        // p.moveToPointAlong(t);
+
+        // Detect particle if applicable
+        if(type == DETECTOR) {
+            particlesAbsorbed.push_back(p);
+        }
         p.deactivate();
     } else {
+        double particleEnergy = p.getEnergy() / finalParticleCount;
+        Particle newP(NONE, particleEnergy,
+          Vector3{0.0, 0.0, 0.0}, Vector3{0.0, 0.0, 0.0});
+        double intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
 
+        // Iterate to create particles
+        for(int i = 0; i<record.finalParticleCount; i++) {
+            newP.setType(record.finalParticle);
+            newP.setOrigin(p.pointAlongVec(intDistAlong));
+            newP.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy()));
+            particlesCreated.push_back(newP);
+        }
+
+        p.deactivate();  // Incident particle absorbed
     }
 
     return particlesCreated;
@@ -240,4 +265,24 @@ void Voxel::setMaterial(const Material& m) {
 
 Material Voxel::getMaterial() {
     return material;
+}
+
+std::vector<Particle> Voxel::getParticlesAbsorbed() {
+    return particlesAbsorbed;
+}
+
+int Voxel::getParticlesAbsorbed() {
+    return particlesAbsorbed.size();
+}
+
+std::vector<Particle> Voxel::getAndEraseParticlesAbsorbed() {
+    std::vector<Particle> copy = particlesAbsorbed;
+    particlesAbsorbed = {};
+    return copy;
+}
+
+int Voxel::getAndEraseParticlesAbsorbed() {
+    int size = particlesAbsorbed.size();
+    particlesAbsorbed = {};
+    return size;
 }

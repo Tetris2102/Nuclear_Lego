@@ -17,7 +17,8 @@ struct Vector3 {
     Vector3 cross(const Vector3& v);
     Vector3 operator/(const Vector3& v);
     void normalize();
-    // Creates randomly chosen orthogonal vector to this
+    Vector3 normalize();
+    // Creates randomly chosen orthogonal vector (orthogonal to this Vector3)
     // Uses random u in range [0; 1) for x, y and z
     void randomOrthogonalV3(const Vector3& v, double u_x, double u_y, double u_z);
 };

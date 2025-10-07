@@ -65,3 +65,16 @@ double Particle::getY() {
 double Particle::getZ() {
     return position.z;
 }
+
+Vector3 Particle::pointAlongVec(Vector3 origin,
+  Vector3 dirXYZ, double tmax) {
+    Vector3 pointAlongVec;
+    pointAlongVec.x = origin.x + tmax * dirXYZ.x;
+    pointAlongVec.y = origin.y + tmax * dirXYZ.y;
+    pointAlongVec.z = origin.z + tmax * dirXYZ.z;
+    return pointAlongVec;
+}
+
+void Particle::moveToPointAlong(double t) {
+    setPosition(pointAlongVec(getPosition(), getMomentum(), t));
+}

@@ -34,13 +34,14 @@ class Voxel {
         Vector3 position;
         Material material;
         IsotopeSample sample = stable;
+        std::vector<Particle> particlesAbsorbed;  // For DETECTOR Voxels
 
         // Probability of any interaction happening
         double getTotalIntProb(const Particle& p, double travelDist);
         EventType chooseEventAndXS(const Particle& p);
-        double getIntDistAlong(const Particle& p, double xs,
+        double chooseIntDistAlong(const Particle& p, double xs,
           double tmin, double tmax);
-        Vector3 getScatterMomentum(Vector3 oldMom, double energy);
+        Vector3 getScatterMomentum(const Vector3& oldMom, double energy);
 
         // RNG for
         std::random_device rd;
@@ -48,16 +49,8 @@ class Voxel {
         std::uniform_real_distribution<double> uniform_real_dist(0.0, 1.0);
     public:
 
-        // For MATTER andf DETECTOR
-        Voxel(double _side, Vector3 _position,
-          const Material& _m) : material(_m) {
-            halfSide = _side / 2;
-            position = _position;
-        }
-
-        // For SOURCE
         Voxel(double _side, Vector3 _position, const Material& _m
-          const IsotopeSample& _s) : material(_m), sample(_s) {
+          const IsotopeSample& _s=stable) : material(_m), sample(_s) {
             halfSide = _side / 2;
             position = _position;
             isotopeSample = _isotopeSample;
@@ -71,6 +64,10 @@ class Voxel {
         Vector3 getPosition();
         void setMaterial(const Material& m);
         Material getMaterial();
+        std::vector<Particle> getParticlesAbsorbed();
+        int getParticlesAbsorbed();
+        std::vector<Particle> getAndEraseParticlesAbsorbed();
+        int getAndEraseParticlesAbsorbed();
 };
 
 #endif

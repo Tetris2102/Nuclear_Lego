@@ -51,6 +51,9 @@ class Particle {
         double getX();
         double getY();
         double getZ();
+
+        Vector3 pointAlongVec(Vector3, Vector3 dirXYZ, double tmax);
+        void moveToPointAlong(Particle& p, double t);
 };
 
 #endif
