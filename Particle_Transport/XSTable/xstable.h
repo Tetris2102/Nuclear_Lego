@@ -64,7 +64,7 @@ class XSTable {
         // REACTION
         void addRecordR(ParticleType incPT, ParticleType finPT,
           short int finPCount, double xs, double energy);
-        XSRecord findRecord(EventType et, const Particle& incP);
+        XSRecord findRecord(EventType et, const Particle& incP) const;
         // Finds the best record for every EventType
         std::array<XSRecord, 3> findEventRecords(const Particle& incP);
 };

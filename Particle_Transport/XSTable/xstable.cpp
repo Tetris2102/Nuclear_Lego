@@ -57,7 +57,7 @@ void XSTable::addRecordR(ParticleType incPT, ParticleType finPT,
     records.push_back(r);
 }
 
-XSRecord XSTable::findRecord(EventType et, const Particle& incP) {
+XSRecord XSTable::findRecord(EventType et, const Particle& incP) const {
     std::vector<XSRecord> particleMatch;
     ParticleType type = incP.getType();
     double energy = incP.getEnergy();

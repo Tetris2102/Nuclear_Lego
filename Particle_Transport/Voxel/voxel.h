@@ -7,6 +7,7 @@
 #include "../Material/material.h"
 #include "../IsotopeSample/isotopeSample.h"
 #include "../Vector3/vector3.h"
+#include <utility>
 #include <array>
 #include <vector>
 #include <random>
@@ -16,9 +17,6 @@ enum VoxelType {
     MATTER,
     DETECTOR
 };
-
-// IsotopeSample for stable voxels (MATTER or DETECTOR)
-IsotopeSample stable();
 
 // Reference value of elastic scattering angle at 1 MeV in radians
 // unit: radians * sqrt(MeV)
@@ -33,27 +31,38 @@ class Voxel {
         double halfSide;  // sidelength / 2
         Vector3 position;
         Material material;
-        IsotopeSample sample = stable;
+        IsotopeSample sample;
         std::vector<Particle> particlesAbsorbed;  // For DETECTOR Voxels
 
         // Probability of any interaction happening
         double getTotalIntProb(const Particle& p, double travelDist);
-        EventType chooseEventAndXS(const Particle& p);
-        double chooseIntDistAlong(const Particle& p, double xs,
-          double tmin, double tmax);
+        XSRecord chooseEventAndXS(const Particle& p);
+        double chooseIntDistAlong(double xs, double tmin, double tmax);
         Vector3 getScatterMomentum(const Vector3& oldMom, double energy);
 
         // RNG for
         std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<double> uniform_real_dist(0.0, 1.0);
+        std::mt19937 gen;
+        std::uniform_real_distribution<double> uniform_real_dist;
     public:
 
-        Voxel(double _side, Vector3 _position, const Material& _m
-          const IsotopeSample& _s=stable) : material(_m), sample(_s) {
+        // For MATTER and DETECTOR
+        Voxel(double _side, VoxelType _type, Vector3 _position,
+          const Material& _m)
+          : material(_m), sample{}, gen(rd()), uniform_real_dist(0.0, 1.0) {
             halfSide = _side / 2;
+            type = _type;
             position = _position;
-            isotopeSample = _isotopeSample;
+        }
+
+        // For SOURCE
+        Voxel(double _side, VoxelType _type, Vector3 _position,
+          const Material& _m, const IsotopeSample& _s) :
+          material(_m), sample(_s),
+          gen(rd()), uniform_real_dist(0.0, 1.0) {
+            halfSide = _side / 2;
+            type = _type;
+            position = _position;
         }
 
         // Manage reactions and their probabilities for a particle
@@ -64,10 +73,11 @@ class Voxel {
         Vector3 getPosition();
         void setMaterial(const Material& m);
         Material getMaterial();
-        std::vector<Particle> getParticlesAbsorbed();
-        int getParticlesAbsorbed();
-        std::vector<Particle> getAndEraseParticlesAbsorbed();
-        int getAndEraseParticlesAbsorbed();
+        std::vector<Particle> getPartsEmittedList(double time);
+        int getPartsEmitted(double time);
+        std::vector<Particle> getPartsAbsorbedList();
+        int getPartsAbsorbed();
+        void clearPartsAbsorbed();
 };
 
 #endif

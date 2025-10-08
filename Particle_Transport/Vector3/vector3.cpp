@@ -8,11 +8,11 @@ Vector3 Vector3::operator-(const Vector3& v) const {
     return Vector3(x - v.x, y - v.y, z - v.z);
 }
 
-Vector3 operator*(double a) const {
+Vector3 Vector3::operator*(double a) const {
     return Vector3(x * a, y * a, z * a);
 }
 
-Vector3 Vector3::dot(const Vector3& v) const {
+double Vector3::dot(const Vector3& v) const {
     return x * v.x + y * v.y + z * v.z;
 }
 
@@ -31,13 +31,7 @@ void Vector3::normalize() {
     z /= magnitude;
 }
 
-Vector3 Vector3::normalize() {
-    normalize();
-    return *this;
-}
-
-void Vector3::randomOrthogonalV3(double u_x,
-  double u_y, double u_z) {
+Vector3 Vector3::randomOrthogonalV3(double u_x, double u_y, double u_z) const {
     // Create random vector with each component in [-1; 1] range (initial range [0; 1))
     Vector3 vec3(u_x * 2 - 1, u_y * 2 - 1, u_z * 2 - 1);
     // Make it orthogonal to current object

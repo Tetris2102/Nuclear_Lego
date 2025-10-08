@@ -34,26 +34,26 @@ class Particle {
         }
 
         void setEnergy(double newE);
-        double getEnergy();
+        double getEnergy() const;
         void setType(ParticleType newType);
-        ParticleType getType();
+        ParticleType getType() const;
         void deactivate();
-        bool isActive();
+        bool isActive() const;
 
         void setMomentum(Vector3 newMom);
-        Vector3 getMomentum();
-        double getMomX();
-        double getMomY();
-        double getMomZ();
+        Vector3 getMomentum() const;
+        double getMomX() const;
+        double getMomY() const;
+        double getMomZ() const;
 
         void setPosition(Vector3 newPos);
-        Vector3 getPosition();
-        double getX();
-        double getY();
-        double getZ();
+        Vector3 getPosition() const;
+        double getX() const;
+        double getY() const;
+        double getZ() const;
 
-        Vector3 pointAlongVec(Vector3, Vector3 dirXYZ, double tmax);
-        void moveToPointAlong(Particle& p, double t);
+        Vector3 pointAlongVec(double t) const;
+        void moveToPointAlong(double t);
 };
 
 #endif

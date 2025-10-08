@@ -1,14 +1,15 @@
 // isotopeSample.cpp
 
 #include "isotopeSample.h"
-#include "../Helpers/helpers/h"
+#include "../Helpers/helpers.cpp"
 #include <string>
 #include <vector>
 #include <array>
 #include <cmath>
 
 std::vector<Particle> IsotopeSample::generateParticles(double timeElapsed,
-  Vector3 originXYZ) {
+  Vector3 originXYZ, std::uniform_real_distribution<double>& dist,
+  std::mt19937& gen) {
     std::vector<Particle> particles;
 
     int decays = activity * timeElapsed;
@@ -43,4 +44,8 @@ ParticleType IsotopeSample::getEmitParticleType() {
 
 double IsotopeSample::getEmitEnergy() {
   return emissionEnergy;
+}
+
+bool IsotopeSample::isRadioactive() {
+    return (activity > 0.0);
 }

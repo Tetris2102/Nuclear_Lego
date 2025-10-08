@@ -1,7 +1,7 @@
 #include "../Particle/particle.h"
 #include <array>
 
-void normalizeVecXYZ(double &x, double &y, double &z) {
+inline void normalizeVecXYZ(double &x, double &y, double &z) {
     double magnitude = std::sqrt(x*x + y*y + z*z);
     x /= magnitude;
     y /= magnitude;

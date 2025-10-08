@@ -25,9 +25,9 @@ double Material::getXS(EventType et, const Particle& incP) {
 std::array<double, 3> Material::getEventXSs(const Particle& incP) {
 		std::array<double, 3> xss;
 		std::array<XSRecord, 3> records = xstable.findEventRecords(incP);
-		for(int i = 0; i<3; i++) {
-				xss[i] = records[i].xs;
-		}
+		xss[0] = records[0].xs;
+		xss[1] = records[1].xs;
+		xss[2] = records[2].xs;
 		return xss;
 }
 

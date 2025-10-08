@@ -6,7 +6,7 @@ void Particle::setEnergy(double newE) {
     E = newE;
 }
 
-double Particle::getEnergy() {
+double Particle::getEnergy() const {
     return E;
 }
 
@@ -14,7 +14,7 @@ void Particle::setType(ParticleType newType) {
     type = newType;
 }
 
-ParticleType Particle::getType() {
+ParticleType Particle::getType() const {
     return type;
 }
 
@@ -22,7 +22,7 @@ void Particle::deactivate() {
     exists = false;
 }
 
-bool Particle::isActive() {
+bool Particle::isActive() const {
     return exists;
 }
 
@@ -30,19 +30,19 @@ void Particle::setMomentum(Vector3 newMom) {
     mom = newMom;
 }
 
-Vector3 Particle::getMomentum() {
+Vector3 Particle::getMomentum() const {
     return mom;
 }
 
-double Particle::getMomX() {
+double Particle::getMomX() const {
     return mom.x;
 }
 
-double Particle::getMomY() {
+double Particle::getMomY() const {
     return mom.y;
 }
 
-double Particle::getMomZ() {
+double Particle::getMomZ() const {
     return mom.z;
 }
 
@@ -50,31 +50,30 @@ void Particle::setPosition(Vector3 newPos) {
     position = newPos;
 }
 
-Vector3 Particle::getPosition() {
+Vector3 Particle::getPosition() const {
     return position;
 }
 
-double Particle::getX() {
+double Particle::getX() const {
     return position.x;
 }
 
-double Particle::getY() {
+double Particle::getY() const {
     return position.y;
 }
 
-double Particle::getZ() {
+double Particle::getZ() const {
     return position.z;
 }
 
-Vector3 Particle::pointAlongVec(Vector3 origin,
-  Vector3 dirXYZ, double tmax) {
+Vector3 Particle::pointAlongVec(double t) const {
     Vector3 pointAlongVec;
-    pointAlongVec.x = origin.x + tmax * dirXYZ.x;
-    pointAlongVec.y = origin.y + tmax * dirXYZ.y;
-    pointAlongVec.z = origin.z + tmax * dirXYZ.z;
+    pointAlongVec.x = position.x + t * mom.x;
+    pointAlongVec.y = position.y + t * mom.y;
+    pointAlongVec.z = position.z + t * mom.z;
     return pointAlongVec;
 }
 
 void Particle::moveToPointAlong(double t) {
-    setPosition(pointAlongVec(getPosition(), getMomentum(), t));
+    setPosition(pointAlongVec(t));
 }
