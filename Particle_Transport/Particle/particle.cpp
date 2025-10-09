@@ -2,11 +2,11 @@
 
 #include "particle.h"
 
-void Particle::setEnergy(double newE) {
+void Particle::setEnergy(float newE) {
     E = newE;
 }
 
-double Particle::getEnergy() const {
+float Particle::getEnergy() const {
     return E;
 }
 
@@ -34,15 +34,15 @@ Vector3 Particle::getMomentum() const {
     return mom;
 }
 
-double Particle::getMomX() const {
+float Particle::getMomX() const {
     return mom.x;
 }
 
-double Particle::getMomY() const {
+float Particle::getMomY() const {
     return mom.y;
 }
 
-double Particle::getMomZ() const {
+float Particle::getMomZ() const {
     return mom.z;
 }
 
@@ -54,19 +54,19 @@ Vector3 Particle::getPosition() const {
     return position;
 }
 
-double Particle::getX() const {
+float Particle::getX() const {
     return position.x;
 }
 
-double Particle::getY() const {
+float Particle::getY() const {
     return position.y;
 }
 
-double Particle::getZ() const {
+float Particle::getZ() const {
     return position.z;
 }
 
-Vector3 Particle::pointAlongVec(double t) const {
+Vector3 Particle::pointAlongVec(float t) const {
     Vector3 pointAlongVec;
     pointAlongVec.x = position.x + t * mom.x;
     pointAlongVec.y = position.y + t * mom.y;
@@ -74,6 +74,6 @@ Vector3 Particle::pointAlongVec(double t) const {
     return pointAlongVec;
 }
 
-void Particle::moveToPointAlong(double t) {
+void Particle::moveToPointAlong(float t) {
     setPosition(pointAlongVec(t));
 }

@@ -13,15 +13,15 @@
 class IsotopeSample {
     private:
         std::string name;
-        double activity;
+        float activity;
         ParticleType emissionParticle;
-        double emissionEnergy;
+        float emissionEnergy;
 
         void normalizeV(Vector3 &dirXYZ);
     public:
         // For radioactive samples
         IsotopeSample(std::string _name, ParticleType _emissionParticle,
-          double _emissionEnergy, double _activity = 0.0) {
+          float _emissionEnergy, float _activity = 0.0) {
             name = _name;
             activity = _activity;
             emissionParticle = _emissionParticle;
@@ -40,15 +40,15 @@ class IsotopeSample {
         // IsotopeSample& operator=(IsotopeSample&&) noexcept = default;
 
         // Create a particle list with uniform distribution in space
-        std::vector<Particle> generateParticles(double timeElapsed,
-          Vector3 originXYZ, std::uniform_real_distribution<double>& dist,
+        std::vector<Particle> generateParticles(float timeElapsed,
+          Vector3 originXYZ, std::uniform_real_distribution<float>& dist,
           std::mt19937& gen);
         std::string getName();
-        void setActivity(double a);
-        double getActivity();
+        void setActivity(float a);
+        float getActivity();
         void setEmitParticleType(ParticleType pt);
         ParticleType getEmitParticleType();
-        double getEmitEnergy();
+        float getEmitEnergy();
         bool isRadioactive();
 };
 

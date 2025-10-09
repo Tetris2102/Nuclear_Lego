@@ -1,3 +1,5 @@
+// voxel.cpp
+
 #include "voxel.h"
 #include "../Helpers/helpers.cpp"
 #include "../Particle/particle.h"
@@ -5,36 +7,36 @@
 #include <cmath>
 #include <utility>
 
-double Voxel::getTotalIntProb(const Particle& p, double travelDist) {
-    std::array<double, 3> xss = material.getEventXSs(p);
-    double macroXSA = material.getADensity() * xss[0];
-    double macroXSS = material.getADensity() * xss[1];
-    double macroXSR = material.getADensity() * xss[2];
+float Voxel::getTotalIntProb(const Particle& p, float travelDist) {
+    std::array<float, 3> xss = material.getEventXSs(p);
+    float macroXSA = material.getADensity() * xss[0];
+    float macroXSS = material.getADensity() * xss[1];
+    float macroXSR = material.getADensity() * xss[2];
 
-    double totMacroXS = macroXSA + macroXSS + macroXSR;
+    float totMacroXS = macroXSA + macroXSS + macroXSR;
     return 1.0 - std::exp(-totMacroXS * travelDist);
 }
 
 XSRecord Voxel::chooseEventAndXS(const Particle& p) {
     std::array<XSRecord, 3> records = material.getEventRecords(p);
-    std::array<double, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
+    std::array<float, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
     std::discrete_distribution<int> discrete_dist{xss.begin(), xss.end()};
     XSRecord recordChosen = records[discrete_dist(gen)];
     return recordChosen;
 }
 
-double Voxel::chooseIntDistAlong(double xs, double tmin, double tmax) {
-    double u = uniform_real_dist(gen);
-    double sigma = material.getADensity() * xs;  // Macroscopic cross-section
+float Voxel::chooseIntDistAlong(float xs, float tmin, float tmax) {
+    float u = uniform_real_dist(gen);
+    float sigma = material.getADensity() * xs;  // Macroscopic cross-section
     // Use cumulative distribution function, i.e. probability of interaction
     // increases along particle path
     return tmin - (1/sigma) * std::log(1 - u*(1-std::exp(-sigma*(tmax-tmin))));
 }
 
-Vector3 Voxel::getScatterMomentum(const Vector3& oldMom, double energy) {
-    double theta_max = REF_THETA / std::sqrt(energy);
-    double theta = uniform_real_dist(gen) * theta_max;
-    double phi = uniform_real_dist(gen) * TWO_PI;
+Vector3 Voxel::getScatterMomentum(const Vector3& oldMom, float energy) {
+    float theta_max = REF_THETA / std::sqrt(energy);
+    float theta = uniform_real_dist(gen) * theta_max;
+    float phi = uniform_real_dist(gen) * TWO_PI;
     Vector3 randOrthVec = oldMom.randomOrthogonalV3(uniform_real_dist(gen),
       uniform_real_dist(gen), uniform_real_dist(gen));
     Vector3 scatterMom = (oldMom * std::cos(theta) +
@@ -48,10 +50,11 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     if(!intersects(p)) return {};
 
     // Check if particle will undergo any event
-    double tmin = intersectParams(p)[0];
-    double tmax = intersectParams(p)[1];
-    double prob = getTotalIntProb(p, tmax-tmin);
+    float tmin = intersectParams(p)[0];
+    float tmax = intersectParams(p)[1];
+    float prob = getTotalIntProb(p, tmax-tmin);
     if(uniform_real_dist(gen) > prob) {
+        // Same as moveToExit(p);
         p.moveToPointAlong(tmax);  // Particle just passes through
         return {};
     }
@@ -62,14 +65,14 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     std::vector<Particle> particlesCreated;
 
     if(record.event == SCATTER) {
-        double intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
+        float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
         p.moveToPointAlong(intDistAlong);
         p.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy()));
-        double tmaxScatter = intersectParams(p)[1];
+        float tmaxScatter = intersectParams(p)[1];
         p.moveToPointAlong(tmaxScatter); // Advance particle to exit of Voxel
     } else if(record.event == ABSORB) {
         // No need in two lines below since particle is deactivated anyway
-        // double t = getIntDistAlong(record.xs, tmin, tmax);
+        // float t = getIntDistAlong(record.xs, tmin, tmax);
         // p.moveToPointAlong(t);
 
         // Detect particle if applicable
@@ -78,10 +81,10 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
         }
         p.deactivate();
     } else {
-        double particleEnergy = p.getEnergy() / record.finalParticleCount;
+        float particleEnergy = p.getEnergy() / record.finalParticleCount;
         Particle newP(NONE, particleEnergy,
           Vector3{0.0, 0.0, 0.0}, Vector3{0.0, 0.0, 0.0});
-        double intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
+        float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
 
         // Iterate to create particles
         for(int i = 0; i<record.finalParticleCount; i++) {
@@ -97,24 +100,30 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     return particlesCreated;
 }
 
+void Voxel::moveToExit(Particle& p) const {
+    // How far the point of exit is from origin along momentum Vector3
+    float exitAlongMom = intersectParams(p)[1];
+    p.moveToPointAlong(exitAlongMom);
+}
+
 bool Voxel::intersects(const Particle& p) {
-    double xmin, ymin, zmin;
+    float xmin, ymin, zmin;
     xmin = position.x - halfSide;
     ymin = position.y - halfSide;
     zmin = position.z - halfSide;
 
-    double xmax, ymax, zmax;
+    float xmax, ymax, zmax;
     xmax = position.x + halfSide;
     ymax = position.y + halfSide;
     zmax = position.z + halfSide;
 
-    double x = p.getX();
-    double y = p.getY();
-    double z = p.getZ();
+    float x = p.getX();
+    float y = p.getY();
+    float z = p.getZ();
 
-    double dx = p.getMomX();
-    double dy = p.getMomY();
-    double dz = p.getMomZ();
+    float dx = p.getMomX();
+    float dy = p.getMomY();
+    float dz = p.getMomZ();
 
     // Normalize magnitude
     normalizeVecXYZ(dx, dy, dz);
@@ -141,7 +150,7 @@ bool Voxel::intersects(const Particle& p) {
         }
     }
 
-    double t0x, t1x, t0y, t1y, t0z, t1z;
+    float t0x, t1x, t0y, t1y, t0z, t1z;
 
     if(dx > 0) {
         t0x = (xmin - x) / dx;
@@ -170,30 +179,30 @@ bool Voxel::intersects(const Particle& p) {
         t0z = (zmax - z) / dz;
     }
 
-    double tmin = std::max({t0x, t0y, t0z});
-    double tmax = std::min({t1x, t1y, t1z});
+    float tmin = std::max({t0x, t0y, t0z});
+    float tmax = std::min({t1x, t1y, t1z});
 
     return (tmax > tmin) ? true : false;
 }
 
-std::array<double, 2> Voxel::intersectParams(const Particle& p) {
-    double xmin, ymin, zmin;
+std::array<float, 2> Voxel::intersectParams(const Particle& p) const {
+    float xmin, ymin, zmin;
     xmin = position.x - halfSide;
     ymin = position.y - halfSide;
     zmin = position.z - halfSide;
 
-    double xmax, ymax, zmax;
+    float xmax, ymax, zmax;
     xmax = position.x + halfSide;
     ymax = position.y + halfSide;
     zmax = position.z + halfSide;
 
-    double x = p.getX();
-    double y = p.getY();
-    double z = p.getZ();
+    float x = p.getX();
+    float y = p.getY();
+    float z = p.getZ();
 
-    double dx = p.getMomX();
-    double dy = p.getMomY();
-    double dz = p.getMomZ();
+    float dx = p.getMomX();
+    float dy = p.getMomY();
+    float dz = p.getMomZ();
 
     // Normalize magnitude
     normalizeVecXYZ(dx, dy, dz);
@@ -203,7 +212,7 @@ std::array<double, 2> Voxel::intersectParams(const Particle& p) {
     ignoreY = (dy == 0);
     ignoreZ = (dz == 0);
 
-    double t0x, t1x, t0y, t1y, t0z, t1z;
+    float t0x, t1x, t0y, t1y, t0z, t1z;
 
     if(dx > 0) {
         t0x = (xmin - x) / dx;
@@ -232,8 +241,8 @@ std::array<double, 2> Voxel::intersectParams(const Particle& p) {
         t0z = (zmax - z) / dz;
     }
 
-    std::vector<double> tMinArgs;
-    std::vector<double> tMaxArgs;
+    std::vector<float> tMinArgs;
+    std::vector<float> tMaxArgs;
     if(!ignoreX) {
         tMinArgs.push_back(t0x);
         tMaxArgs.push_back(t1x);
@@ -250,30 +259,38 @@ std::array<double, 2> Voxel::intersectParams(const Particle& p) {
     auto tminIt = std::max_element(tMinArgs.begin(), tMinArgs.end());
     auto tmaxIt = std::min_element(tMaxArgs.begin(), tMaxArgs.end());
 
-    double tmin = *tminIt;
-    double tmax = *tmaxIt;
+    float tmin = *tminIt;
+    float tmax = *tmaxIt;
 
     return {tmin, tmax};
+}
+
+VoxelType Voxel::getType() const {
+    return type;
+}
+
+void Voxel::setPosition(const Vector3& newPos) {
+    position = newPos;
 }
 
 Vector3 Voxel::getPosition() {
     return position;
 }
 
-void Voxel::setMaterial(const Material& m) {
-    material = m;
+void Voxel::setMaterial(const Material& newMat) {
+    material = newMat;
 }
 
 Material Voxel::getMaterial() {
     return material;
 }
 
-std::vector<Particle> Voxel::getPartsEmittedList(double timeElapsed) {
+std::vector<Particle> Voxel::getPartsEmittedList(float timeElapsed) {
     return sample.generateParticles(timeElapsed, position,
       uniform_real_dist, gen);
 }
 
-int Voxel::getPartsEmitted(double time) {
+int Voxel::getPartsEmitted(float time) {
     return getPartsEmittedList(time).size();
 }
 

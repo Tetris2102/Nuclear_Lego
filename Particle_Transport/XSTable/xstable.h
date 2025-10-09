@@ -24,7 +24,7 @@ enum EventType {
 //
 //         // Energy to cross-section map
 //         // All cross-sections are macroscopic
-//         std::map<double, double> eToXS;
+//         std::map<float, float> eToXS;
 //     public:
 //         XSTable(EventType eventType, ParticleType incParticle,
 //           ParticleType finalParticle=NONE, int finalParticleCount) {
@@ -38,8 +38,8 @@ enum EventType {
 //         ParticleType getIncParticleType();
 //         ParticleType getFinalParticleType();
 //         int getFinalParticles();
-//         void addXS(double energy, double xs);
-//         double getXS(double energy);
+//         void addXS(float energy, float xs);
+//         float getXS(float energy);
 // };
 
 struct XSRecord {
@@ -47,8 +47,8 @@ struct XSRecord {
     ParticleType incParticle;
     ParticleType finalParticle;
     short int finalParticleCount;  // How many particles in total after event
-    double xs;
-    double energy;
+    float xs;
+    float energy;
 };
 
 class XSTable {
@@ -58,12 +58,12 @@ class XSTable {
         XSTable() {}
 
         // ABSORB
-        void addRecordA(ParticleType incPT, double xs, double energy);
+        void addRecordA(ParticleType incPT, float xs, float energy);
         // SCATTER
-        void addRecordS(ParticleType incPT, double xs, double energy);
+        void addRecordS(ParticleType incPT, float xs, float energy);
         // REACTION
         void addRecordR(ParticleType incPT, ParticleType finPT,
-          short int finPCount, double xs, double energy);
+          short int finPCount, float xs, float energy);
         XSRecord findRecord(EventType et, const Particle& incP) const;
         // Finds the best record for every EventType
         std::array<XSRecord, 3> findEventRecords(const Particle& incP);

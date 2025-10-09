@@ -1,8 +1,9 @@
+-2. Make all functions const member where possible, especially in Voxel
 -1. pointAlongVec() and moveToPointAlong() moved from helpers.cpp
   to particle.cpp -> make corresponding changes - DONE
 0. Add moveToPointAlong() to Particle instead of helpers.cpp - DONE
-1. Replace std::array<double, 3> with struct Vec3 - DONE
-2. Adjust data types where double is excessive (if needed)
+1. Replace std::array<float, 3> with struct Vec3 - DONE
+2. Adjust data types where float is excessive (if needed)
 3. Explicitly include all used headers in every implementation file
 instead of chaining #include in files - NO NEED?
 4. Finish data.cpp

@@ -14,7 +14,7 @@ int main() {
 
     int a = 0;
 
-    auto emittedPartsList = sourceCesium.getPartsEmittedList(10.0);
+    auto emittedPartsList = sourceCesium.getPartsEmittedList(1.0);
     std::cout << "Emitted " << emittedPartsList.size() << " particles." << std::endl;
     for(auto p : emittedPartsList) {
         detectorAir.processParticle(p);
@@ -26,7 +26,7 @@ int main() {
            a++;
         }
     }
-    double absorbed = detectorAir.getPartsAbsorbed();
+    float absorbed = detectorAir.getPartsAbsorbed();
     std::cout << "Absorbed " << absorbed << " particles." << std::endl;
     return 0;
 }

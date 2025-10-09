@@ -7,8 +7,8 @@
 #include <array>
 #include <cmath>
 
-std::vector<Particle> IsotopeSample::generateParticles(double timeElapsed,
-  Vector3 originXYZ, std::uniform_real_distribution<double>& dist,
+std::vector<Particle> IsotopeSample::generateParticles(float timeElapsed,
+  Vector3 originXYZ, std::uniform_real_distribution<float>& dist,
   std::mt19937& gen) {
     std::vector<Particle> particles;
 
@@ -26,11 +26,11 @@ std::string IsotopeSample::getName() {
     return name;
 }
 
-void IsotopeSample::setActivity(double a) {
+void IsotopeSample::setActivity(float a) {
     activity = a;
 }
 
-double IsotopeSample::getActivity() {
+float IsotopeSample::getActivity() {
     return activity;
 }
 
@@ -42,7 +42,7 @@ ParticleType IsotopeSample::getEmitParticleType() {
     return emissionParticle;
 }
 
-double IsotopeSample::getEmitEnergy() {
+float IsotopeSample::getEmitEnergy() {
   return emissionEnergy;
 }
 
