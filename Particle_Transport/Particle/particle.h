@@ -18,14 +18,14 @@ class Particle {
     private:
         ParticleType type;
         bool exists = true;
-        double E = 0.0f;  // energy
+        float E = 0.0f;  // energy
 
         // Position
         Vector3 position = {0.0, 0.0, 0.0};
         // Momentum
         Vector3 mom = {0.0, 0.0, 0.0};
     public:
-        Particle(ParticleType _type, double _energy, Vector3 _position,
+        Particle(ParticleType _type, float _energy, Vector3 _position,
           Vector3 _momentumXYZ) {
             type = _type;
             E = _energy;
@@ -33,8 +33,8 @@ class Particle {
             mom = _momentumXYZ;
         }
 
-        void setEnergy(double newE);
-        double getEnergy() const;
+        void setEnergy(float newE);
+        float getEnergy() const;
         void setType(ParticleType newType);
         ParticleType getType() const;
         void deactivate();
@@ -42,18 +42,18 @@ class Particle {
 
         void setMomentum(Vector3 newMom);
         Vector3 getMomentum() const;
-        double getMomX() const;
-        double getMomY() const;
-        double getMomZ() const;
+        float getMomX() const;
+        float getMomY() const;
+        float getMomZ() const;
 
         void setPosition(Vector3 newPos);
         Vector3 getPosition() const;
-        double getX() const;
-        double getY() const;
-        double getZ() const;
+        float getX() const;
+        float getY() const;
+        float getZ() const;
 
-        Vector3 pointAlongVec(double t) const;
-        void moveToPointAlong(double t);
+        Vector3 pointAlongVec(float t) const;
+        void moveToPointAlong(float t);
 };
 
 #endif

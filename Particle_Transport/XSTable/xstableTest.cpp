@@ -17,7 +17,7 @@ int main() {
     cout << "Absorption cross-section: " << Pb207.getXS(ABSORB, beta) <<
       " barns." << endl;
     array<XSRecord, 3> records = myTable.findEventRecords(beta);
-    array<double, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
+    array<float, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
     cout << "Cross-sections for absorb, scatter and react (barns): " <<
       xss[0] << ", " << xss[1] << " and " << xss[2] << endl;
     return 0;

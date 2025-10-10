@@ -20,11 +20,11 @@
 //     return finalParticleCount;
 // }
 //
-// void XSTable::addXS(double energy, double xs) {
+// void XSTable::addXS(float energy, float xs) {
 //     eToXS[energy] = xs;
 // }
 //
-// double XSTable::getXS(double energy) {
+// float XSTable::getXS(float energy) {
 //     auto it = eToXS.lower_bound(energy);
 //
 //     if (it == eToXS.begin()) {
@@ -41,18 +41,18 @@
 //     }
 // }
 
-void XSTable::addRecordA(ParticleType incPT, double xs, double energy) {
+void XSTable::addRecordA(ParticleType incPT, float xs, float energy) {
     XSRecord r = {ABSORB, incPT, NONE, 0, xs, energy};
     records.push_back(r);
 }
 
-void XSTable::addRecordS(ParticleType incPT, double xs, double energy) {
+void XSTable::addRecordS(ParticleType incPT, float xs, float energy) {
     XSRecord r = {SCATTER, incPT, incPT, 1, xs, energy};
     records.push_back(r);
 }
 
 void XSTable::addRecordR(ParticleType incPT, ParticleType finPT,
-  short int finPCount, double xs, double energy) {
+  short int finPCount, float xs, float energy) {
     XSRecord r = {REACTION, incPT, finPT, finPCount, xs, energy};
     records.push_back(r);
 }
@@ -60,7 +60,7 @@ void XSTable::addRecordR(ParticleType incPT, ParticleType finPT,
 XSRecord XSTable::findRecord(EventType et, const Particle& incP) const {
     std::vector<XSRecord> particleMatch;
     ParticleType type = incP.getType();
-    double energy = incP.getEnergy();
+    float energy = incP.getEnergy();
 
     for(const XSRecord &r : records) {
         if(r.incParticle == type) particleMatch.push_back(r);
@@ -72,7 +72,7 @@ XSRecord XSTable::findRecord(EventType et, const Particle& incP) const {
         return XSRecord{et, type, type, 1, 0.0, energy};
     }
 
-    double diff = std::numeric_limits<double>::infinity();
+    float diff = std::numeric_limits<float>::infinity();
     XSRecord match;
     for(XSRecord r : particleMatch) {
         if(std::abs(energy - r.energy) < diff) {
@@ -93,7 +93,7 @@ std::array<XSRecord, 3> XSTable::findEventRecords(const Particle& incP) {
     for(int i = 0; i<3; i++) {
         std::vector<XSRecord> firstMatches;
         ParticleType type = incP.getType();
-        double energy = incP.getEnergy();
+        float energy = incP.getEnergy();
 
         // Match by incident particle and event type
         for(const XSRecord &r : records) {
@@ -110,7 +110,7 @@ std::array<XSRecord, 3> XSTable::findEventRecords(const Particle& incP) {
         }
 
         XSRecord match;
-        double diff = std::numeric_limits<double>::infinity();
+        float diff = std::numeric_limits<float>::infinity();
         for(XSRecord r : firstMatches) {
             if(std::abs(energy - r.energy) < diff) {
                 match = r;
