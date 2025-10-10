@@ -20,7 +20,7 @@ std::vector<Particle> IsotopeSample::generateParticles(float timeElapsed,
         particles.push_back(p);
     }
     return particles;
-  }
+}
 
 std::string IsotopeSample::getName() {
     return name;

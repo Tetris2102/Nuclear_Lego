@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <iostream>
 
 float Voxel::getTotalIntProb(const Particle& p, float travelDist) {
     std::array<float, 3> xss = material.getEventXSs(p);
@@ -21,12 +22,12 @@ XSRecord Voxel::chooseEventAndXS(const Particle& p) {
     std::array<XSRecord, 3> records = material.getEventRecords(p);
     std::array<float, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
     std::discrete_distribution<int> discrete_dist{xss.begin(), xss.end()};
-    XSRecord recordChosen = records[discrete_dist(gen)];
+    XSRecord recordChosen = records[discrete_dist(*gen_ptr)];
     return recordChosen;
 }
 
 float Voxel::chooseIntDistAlong(float xs, float tmin, float tmax) {
-    float u = uniform_real_dist(gen);
+    float u = (*uniform_real_dist_ptr)(*gen_ptr);
     float sigma = material.getADensity() * xs;  // Macroscopic cross-section
     // Use cumulative distribution function, i.e. probability of interaction
     // increases along particle path
@@ -35,14 +36,20 @@ float Voxel::chooseIntDistAlong(float xs, float tmin, float tmax) {
 
 Vector3 Voxel::getScatterMomentum(const Vector3& oldMom, float energy) {
     float theta_max = REF_THETA / std::sqrt(energy);
-    float theta = uniform_real_dist(gen) * theta_max;
-    float phi = uniform_real_dist(gen) * TWO_PI;
-    Vector3 randOrthVec = oldMom.randomOrthogonalV3(uniform_real_dist(gen),
-      uniform_real_dist(gen), uniform_real_dist(gen));
+    float theta = (*uniform_real_dist_ptr)(*gen_ptr) * theta_max;
+    float phi = (*uniform_real_dist_ptr)(*gen_ptr) * TWO_PI;
+    Vector3 randOrthVec = oldMom.randomOrthogonalV3((*uniform_real_dist_ptr)(*gen_ptr),
+      (*uniform_real_dist_ptr)(*gen_ptr), (*uniform_real_dist_ptr)(*gen_ptr));
     Vector3 scatterMom = (oldMom * std::cos(theta) +
       randOrthVec.cross(oldMom) * std::sin(theta));
     scatterMom.normalize();
     return scatterMom;
+}
+
+void Voxel::setRNG(std::uniform_real_distribution<float>& dist,
+  std::mt19937& gen) {
+      uniform_real_dist_ptr = &dist;
+      gen_ptr = &gen;
 }
 
 std::vector<Particle> Voxel::processParticle(Particle& p) {
@@ -53,7 +60,7 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     float tmin = intersectParams(p)[0];
     float tmax = intersectParams(p)[1];
     float prob = getTotalIntProb(p, tmax-tmin);
-    if(uniform_real_dist(gen) > prob) {
+    if((*uniform_real_dist_ptr)(*gen_ptr) > prob) {
         // Same as moveToExit(p);
         p.moveToPointAlong(tmax);  // Particle just passes through
         return {};
@@ -70,6 +77,7 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
         p.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy()));
         float tmaxScatter = intersectParams(p)[1];
         p.moveToPointAlong(tmaxScatter); // Advance particle to exit of Voxel
+        std::cout << "Scatter" << std::endl;
     } else if(record.event == ABSORB) {
         // No need in two lines below since particle is deactivated anyway
         // float t = getIntDistAlong(record.xs, tmin, tmax);
@@ -80,6 +88,7 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
             particlesAbsorbed.push_back(p);
         }
         p.deactivate();
+        std::cout << "Absorb" << std::endl;
     } else {
         float particleEnergy = p.getEnergy() / record.finalParticleCount;
         Particle newP(NONE, particleEnergy,
@@ -286,22 +295,27 @@ Material Voxel::getMaterial() {
 }
 
 std::vector<Particle> Voxel::getPartsEmittedList(float timeElapsed) {
+    assert(type == SOURCE);
     return sample.generateParticles(timeElapsed, position,
-      uniform_real_dist, gen);
+      *uniform_real_dist_ptr, *gen_ptr);
 }
 
 int Voxel::getPartsEmitted(float time) {
+    assert(type == SOURCE);
     return getPartsEmittedList(time).size();
 }
 
 std::vector<Particle> Voxel::getPartsAbsorbedList() {
+    assert(type == DETECTOR);
     return particlesAbsorbed;
 }
 
 int Voxel::getPartsAbsorbed() {
+    assert(type == DETECTOR);
     return particlesAbsorbed.size();
 }
 
 void Voxel::clearPartsAbsorbed() {
+    assert(type == DETECTOR);
     particlesAbsorbed = {};
 }

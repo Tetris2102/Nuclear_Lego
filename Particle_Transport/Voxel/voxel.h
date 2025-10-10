@@ -12,6 +12,7 @@
 #include <utility>
 #include <array>
 #include <vector>
+#include <cassert>
 #include <random>
 
 enum VoxelType {
@@ -42,17 +43,19 @@ class Voxel {
         float chooseIntDistAlong(float xs, float tmin, float tmax);
         Vector3 getScatterMomentum(const Vector3& oldMom, float energy);
 
-        // RNG for
-        std::random_device rd;
-        std::mt19937 gen;
-        std::uniform_real_distribution<float> uniform_real_dist;
+        // RNG pointers
+        // std::random_device rd;
+        std::mt19937* gen_ptr = nullptr;
+        // Distribution should be in (0, 1) range
+        std::uniform_real_distribution<float>* uniform_real_dist_ptr = nullptr;
     public:
 
         // For MATTER and DETECTOR
         Voxel(float _side, VoxelType _type, Vector3 _position,
           const Material& _m)
-          : material(_m), sample{}, gen(rd()), uniform_real_dist(0.0, 1.0) {
+          : material(_m), sample{} {
             halfSide = _side / 2;
+            assert(_type != SOURCE);
             type = _type;
             position = _position;
         }
@@ -60,15 +63,17 @@ class Voxel {
         // For SOURCE
         Voxel(float _side, VoxelType _type, Vector3 _position,
           const Material& _m, const IsotopeSample& _s) :
-          material(_m), sample(_s),
-          gen(rd()), uniform_real_dist(0.0, 1.0) {
+          material(_m), sample(_s) {
             halfSide = _side / 2;
+            assert(_type == SOURCE);
             type = _type;
             position = _position;
         }
 
         // Manage reactions and their probabilities for a particle
         // Returns vector of particles created (if any)
+        void setRNG(std::uniform_real_distribution<float>& dist,
+          std::mt19937& gen);
         std::vector<Particle> processParticle(Particle& p);
         void moveToExit(Particle& p) const;
         bool intersects(const Particle& p);

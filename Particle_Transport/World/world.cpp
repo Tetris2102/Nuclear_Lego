@@ -5,13 +5,14 @@
 #include <array>
 #include <cassert>
 #include <algorithm>
+#include <iostream>
 
 void World::updateLists() {
     sources = {};
     matters = {};
     detectors = {};
 
-    for(const auto& voxel : scene) {
+    for(auto& voxel : scene) {
         VoxelType type = voxel.getType();
         if(type == SOURCE) {
             sources.push_back(&voxel);
@@ -33,7 +34,7 @@ void World::updateLists() {
   i_5 = j + sizeX * sizeY
   i_5 = j - sizeX * sizeY
 */
-Voxel& World::nextVoxel(const Particle& p) const {
+Voxel& World::nextVoxel(Particle& p) {
     short int x = std::floor(p.getX() / voxelSide);
     short int y = std::floor(p.getY() / voxelSide);
     short int z = std::floor(p.getZ() / voxelSide);
@@ -47,13 +48,15 @@ Voxel& World::nextVoxel(const Particle& p) const {
         j - sizeX * sizeY
     };
 
-    for(const auto& i : adjIndices) {
+    for(auto& i : adjIndices) {
         if(scene[i].intersects(p)) return scene[i];
     }
+    return scene[0];  // Else redirect particle to first voxel, which will
+                      // just discard it because no intersection occurs
 }
 
 void World::addParticlesEmitted(float time) {
-    for(const auto* voxel : sources) {
+    for(auto* voxel : sources) {
         auto particlesEmitted = voxel->getPartsEmittedList(time);
         for(auto& p : particlesEmitted) voxel->moveToExit(p);
         particles.insert(particles.end(), particlesEmitted.begin(),
@@ -75,8 +78,8 @@ void World::cleanParticles() {
         return (!p.isActive() || xEscaped || yEscaped || zEscaped);
     };
 
-    particles::erase(
-      particles::remove_if(particles.begin(), particles.end(), toRemove,
+    particles.erase(
+      std::remove_if(particles.begin(), particles.end(), toRemove),
       particles.end()
     );
 }
@@ -93,21 +96,31 @@ Voxel& World::voxelAt(short int x, short int y, short int z) {
 }
 
 void World::simulate(float time) {
+    addParticlesEmitted(time);
+
     for(auto& p : particles) {
-        addParticlesEmitted(time);
+        std::cout << "Loop" << std::endl;
         nextVoxel(p).processParticle(p);
     }
     cleanParticles();
 }
 
-void World::setScene(const std::vector<Voxel*>& newScene) {
-    assert(scene.size() == newScene.size());
+void World::setScene(std::vector<Voxel>& newScene, short int newX,
+  short int newY, short int newZ) {
+    if(newX != 0) sizeX = newX;
+    if(newY != 0) sizeY = newY;
+    if(newZ != 0) sizeZ = newZ;
+
     for(int i = 0; i<scene.size(); i++) {
-        scene[i] = *newScene[i];
+        scene[i] = newScene[i];
     }
     updateLists();
 }
 
 std::vector<Voxel*> World::getDetectors() {
     return detectors;
+}
+
+int World::getParticleCount() {
+    return particles.size();
 }

@@ -26,7 +26,7 @@ class World {
 
         void updateLists();
         // Get the next voxel a particle will pass
-        Voxel& nextVoxel(const Particle& p) const;
+        Voxel& nextVoxel(Particle& p);
         void addParticlesEmitted(float time);
         // Erase deactivated or escaped particles
         void cleanParticles();
@@ -45,9 +45,11 @@ class World {
         void simulate(float time);
         // newScene must be structured according to
         // sizeX, sizeY and sizeZ given in constructor
-        void setScene(const std::vector<Voxel>& newScene);
+        void setScene(std::vector<Voxel>& newScene, short int newX=0,
+          short int newY=0, short int newZ=0);
         // Vector of tuples of const Voxel&, x, y and z
-        std::vector<Voxel*> World::getDetectors();
+        std::vector<Voxel*> getDetectors();
+        int getParticleCount();
 };
 
 #endif
