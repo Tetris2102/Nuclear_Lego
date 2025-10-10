@@ -1,3 +1,5 @@
+-3. Include dist and gen as mandatory constructor parameters in Voxel
+    to avoid segmentation fault because of null pointers (instead of using setRNG())
 -2. Make all functions const member where possible, especially in Voxel
 -1. pointAlongVec() and moveToPointAlong() moved from helpers.cpp
   to particle.cpp -> make corresponding changes - DONE

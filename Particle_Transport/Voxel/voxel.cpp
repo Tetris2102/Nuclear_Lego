@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
-#include <iostream>
 
 float Voxel::getTotalIntProb(const Particle& p, float travelDist) {
     std::array<float, 3> xss = material.getEventXSs(p);
@@ -77,7 +76,6 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
         p.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy()));
         float tmaxScatter = intersectParams(p)[1];
         p.moveToPointAlong(tmaxScatter); // Advance particle to exit of Voxel
-        std::cout << "Scatter" << std::endl;
     } else if(record.event == ABSORB) {
         // No need in two lines below since particle is deactivated anyway
         // float t = getIntDistAlong(record.xs, tmin, tmax);
@@ -88,7 +86,6 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
             particlesAbsorbed.push_back(p);
         }
         p.deactivate();
-        std::cout << "Absorb" << std::endl;
     } else {
         float particleEnergy = p.getEnergy() / record.finalParticleCount;
         Particle newP(NONE, particleEnergy,
@@ -302,7 +299,8 @@ std::vector<Particle> Voxel::getPartsEmittedList(float timeElapsed) {
 
 int Voxel::getPartsEmitted(float time) {
     assert(type == SOURCE);
-    return getPartsEmittedList(time).size();
+    return sample.generateParticles(time, position,
+      *uniform_real_dist_ptr, *gen_ptr).size();
 }
 
 std::vector<Particle> Voxel::getPartsAbsorbedList() {

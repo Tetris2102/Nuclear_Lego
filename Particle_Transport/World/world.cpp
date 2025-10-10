@@ -5,7 +5,6 @@
 #include <array>
 #include <cassert>
 #include <algorithm>
-#include <iostream>
 
 void World::updateLists() {
     sources = {};
@@ -99,7 +98,6 @@ void World::simulate(float time) {
     addParticlesEmitted(time);
 
     for(auto& p : particles) {
-        std::cout << "Loop" << std::endl;
         nextVoxel(p).processParticle(p);
     }
     cleanParticles();
@@ -111,9 +109,7 @@ void World::setScene(std::vector<Voxel>& newScene, short int newX,
     if(newY != 0) sizeY = newY;
     if(newZ != 0) sizeZ = newZ;
 
-    for(int i = 0; i<scene.size(); i++) {
-        scene[i] = newScene[i];
-    }
+    scene = newScene;
     updateLists();
 }
 

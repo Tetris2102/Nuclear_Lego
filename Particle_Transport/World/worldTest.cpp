@@ -17,6 +17,7 @@ int main(int argc, char const *argv[]) {
     IsotopeSample alphaSample("alphaSample", ALPHA, 2.1, 2000);
     Voxel sourceInAir(voxelSide, SOURCE, Vector3{0.0, 0.0, 0.0},
       airMat, alphaSample);
+    sourceInAir.setRNG(dist, gen);
 
     const short int x = 3, y = 3, z = 3;
 
@@ -27,7 +28,13 @@ int main(int argc, char const *argv[]) {
         air, air, air, air,     air,     air, air, air, air
     };
     world.setScene(scene);
-    world.simulate(10.0);
-    std::cout << "Active particles: " << world.getParticleCount() << "." << std::endl;
+    for(int i = 0; i<10; i++) {
+        world.simulate(0.5);
+        std::cout << "Active particles: " << world.getParticleCount()
+          << "." << std::endl;
+    }
+    std::cout << "Emitted: " << sourceInAir.getPartsEmitted(5.0)
+      << "." << std::endl;
+
     return 0;
 }
