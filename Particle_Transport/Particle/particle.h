@@ -33,6 +33,9 @@ class Particle {
             mom = _momentumXYZ;
         }
 
+        // Empty constructor for initializing particle properties later
+        Particle() {};
+
         void setEnergy(float newE);
         float getEnergy() const;
         void setType(ParticleType newType);

@@ -31,7 +31,6 @@ enum VoxelType {
 class Voxel {
     private:
         VoxelType type;
-        float halfSide;  // sidelength / 2
         Vector3 position;
         Material material;
         IsotopeSample sample;
@@ -51,36 +50,35 @@ class Voxel {
     public:
 
         // For MATTER and DETECTOR
-        Voxel(float _side, VoxelType _type, Vector3 _position,
-          const Material& _m)
-          : material(_m), sample{} {
-            halfSide = _side / 2;
+        Voxel(VoxelType _type, const Material& _m,
+          std::mt19937& gen, std::uniform_real_distribution<float>& dist) :
+          material(_m), sample{} {
             assert(_type != SOURCE);
             type = _type;
-            position = _position;
+            gen_ptr = &gen;
+            uniform_real_dist_ptr = &dist;
         }
 
         // For SOURCE
-        Voxel(float _side, VoxelType _type, Vector3 _position,
-          const Material& _m, const IsotopeSample& _s) :
+        Voxel(VoxelType _type, const Material& _m, const IsotopeSample& _s,
+          std::mt19937& gen, std::uniform_real_distribution<float>& dist) :
           material(_m), sample(_s) {
-            halfSide = _side / 2;
             assert(_type == SOURCE);
             type = _type;
-            position = _position;
+            gen_ptr = &gen;
+            uniform_real_dist_ptr = &dist;
         }
 
         // Manage reactions and their probabilities for a particle
         // Returns vector of particles created (if any)
-        void setRNG(std::uniform_real_distribution<float>& dist,
-          std::mt19937& gen);
-        std::vector<Particle> processParticle(Particle& p);
-        void moveToExit(Particle& p) const;
-        bool intersects(const Particle& p);
-        std::array<float, 2> intersectParams(const Particle& p) const;  // returns [tmin, tmax]
+        std::vector<Particle> processParticle(Particle& p, float voxelHalfSide);
+        void moveToExit(Particle& p, float voxelHalfSide) const;
+        bool intersects(const Particle& p, float voxelHalfSide) const;
+        std::array<float, 2> intersectParams(const Particle& p,
+          float voxelHalfSide) const;  // returns [tmin, tmax]
         VoxelType getType() const;
-        void setPosition(const Vector3& newPos);
-        Vector3 getPosition();
+        void setPosition(const Vector3& newPosition);
+        Vector3 getPosition() const;
         void setMaterial(const Material& newMat);
         Material getMaterial();
         std::vector<Particle> getPartsEmittedList(float time);

@@ -62,3 +62,16 @@ inline Material getAir() {
     Material air("air", 29.0, 0.0012, airTable);
     return air;
 }
+
+// inline Material getPb207() {
+//     XSTable pb207Table;
+//
+//     // Need to add alpha and beta particle "absorption" emitting photon reaction
+//     pb207Table.addRecordR(ALPHA, ALPHA, 1, 0.0, 0.0);
+//     pb207Table.addRecordR(BETA, BETA, 1, 0.0, 0.0);
+//     pb207Table.addRecordR(GAMMA, GAMMA, 1, 0.0, 0.0);
+//     pb207Table.addRecordR(NEUTRON, NEUTRON, 1, 0.0, 0.0);
+//
+//     Material pb207("pb207", 207.0, 11.34, pb207Table);
+//     return pb207;
+// }

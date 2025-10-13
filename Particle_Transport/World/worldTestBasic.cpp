@@ -9,7 +9,7 @@ int main(int argc, char const *argv[]) {
     float voxelSide = 2.0;
 
     std::random_device rd;
-    std::mt19937 gen;
+    std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dist(0, 1);
     Voxel air(voxelSide, MATTER, Vector3{0.0, 0.0, 0.0}, airMat);
     air.setRNG(dist, gen);
