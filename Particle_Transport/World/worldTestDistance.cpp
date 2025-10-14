@@ -27,15 +27,15 @@ int main(int argc, char const *argv[]) {
 
     World world(x, y, z, 4.0);
     std::vector<Voxel> scene = {
-        sourceInAir, detector, sourceInAir, detector,  air,    air, air, air, air,
-         detector,  sourceInAir, detector,    air,   detector, air, air, air, air,
+        sourceInAir, detector, air, detector,  air,    air, air, air, air,
+         detector,  air, detector,    air,   detector, air, air, air, air,
            air,        air,       air,        air,     air,    air, air, air, air
     };
     world.setScene(scene);
 
     auto start = std::chrono::high_resolution_clock::now();
-    for(int i = 0; i<10; i++) {
-        world.simulate(1.0);
+    for(int i = 0; i<40; i++) {
+        world.simulate(0.25);
     }
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -50,6 +50,8 @@ int main(int argc, char const *argv[]) {
     std::cout << "    " << partsD2 << " particles detected" << std::endl;
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Simulating 10.0s took: " << elapsed.count() << " seconds" << std::endl;
+
+    std::cout << "Total particle count on exit: " << world.getParticleCount() << std::endl;
 
     return 0;
 }

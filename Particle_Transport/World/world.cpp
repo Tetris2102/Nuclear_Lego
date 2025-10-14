@@ -5,7 +5,6 @@
 #include <array>
 #include <cassert>
 #include <algorithm>  // std::clamp is used (C++17)
-#include <limits>
 #include <iostream>
 
 // dir has to be normalized
@@ -96,19 +95,19 @@ Voxel& World::nextVoxel(Particle& p) {
     if(dir.x != 0) {
         nextBoundaryX = (((dir.x > 0) ? (x+1) : x) * voxelSide - pos.x) / dir.x;
     } else {
-        nextBoundaryX = std::numeric_limits<float>::infinity();
+        nextBoundaryX = sizeX * voxelSide + 1; // Effectively infinity
     }
     
     if(dir.y != 0) {
         nextBoundaryY = (((dir.y > 0) ? (y+1) : y) * voxelSide - pos.y) / dir.y;
     } else {
-        nextBoundaryY = std::numeric_limits<float>::infinity();
+        nextBoundaryY = sizeY * voxelSide + 1; // Effectively infinity
     }
 
     if(dir.z != 0) {
         nextBoundaryZ = (((dir.z > 0) ? (z+1) : z) * voxelSide - pos.z) / dir.z;
     } else {
-        nextBoundaryZ = std::numeric_limits<float>::infinity();
+        nextBoundaryZ = sizeZ * voxelSide + 1; // Effectively infinity
     }
 
     float closestDistAlong = std::min({

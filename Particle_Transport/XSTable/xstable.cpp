@@ -72,10 +72,10 @@ XSRecord XSTable::findRecord(EventType et, const Particle& incP) const {
         return XSRecord{et, type, type, 1, 0.0, energy};
     }
 
-    float diff = std::numeric_limits<float>::infinity();
+    float diff;
     XSRecord match;
     for(XSRecord r : particleMatch) {
-        if(std::abs(energy - r.energy) < diff) {
+        if(std::abs(energy - r.energy) < diff || diff == 0) {
             match = r;
             diff = std::abs(energy - r.energy);
         }
@@ -110,9 +110,9 @@ std::array<XSRecord, 3> XSTable::findEventRecords(const Particle& incP) {
         }
 
         XSRecord match;
-        float diff = std::numeric_limits<float>::infinity();
+        float diff;
         for(XSRecord r : firstMatches) {
-            if(std::abs(energy - r.energy) < diff) {
+            if(std::abs(energy - r.energy) < diff || diff == 0) {
                 match = r;
                 diff = std::abs(energy - r.energy);
             }

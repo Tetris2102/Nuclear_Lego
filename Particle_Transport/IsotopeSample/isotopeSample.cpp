@@ -14,7 +14,8 @@ std::vector<Particle> IsotopeSample::generateParticles(float timeElapsed,
 
     int decays = activity * timeElapsed;
     for(int i = 0; i<decays; i++) {
-        Vector3 mom(dist(gen), dist(gen), dist(gen));
+        // Convert random numbers from [0; 1) to [-1; 1) range
+        Vector3 mom(dist(gen) * 2 - 1, dist(gen) * 2 - 1, dist(gen) * 2 - 1);
         mom.normalize();
         Particle p(emissionParticle, emissionEnergy, originXYZ, mom);
         particles.push_back(p);
