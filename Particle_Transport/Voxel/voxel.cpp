@@ -45,19 +45,13 @@ Vector3 Voxel::getScatterMomentum(const Vector3& oldMom, float energy) {
     return scatterMom;
 }
 
-void Voxel::setRNG(std::uniform_real_distribution<float>& dist,
-  std::mt19937& gen) {
-      uniform_real_dist_ptr = &dist;
-      gen_ptr = &gen;
-}
-
-std::vector<Particle> Voxel::processParticle(Particle& p) {
+std::vector<Particle> Voxel::processParticle(Particle& p, float voxelHalfSide) {
     // Check if particle passes through Voxel
-    if(!intersects(p)) return {};
+    if(!intersects(p, voxelHalfSide)) return {};
 
     // Check if particle will undergo any event
-    float tmin = intersectParams(p)[0];
-    float tmax = intersectParams(p)[1];
+    float tmin = intersectParams(p, voxelHalfSide)[0];
+    float tmax = intersectParams(p, voxelHalfSide)[1];
     float prob = getTotalIntProb(p, tmax-tmin);
     if((*uniform_real_dist_ptr)(*gen_ptr) > prob) {
         // Same as moveToExit(p);
@@ -74,7 +68,7 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
         float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
         p.moveToPointAlong(intDistAlong);
         p.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy()));
-        float tmaxScatter = intersectParams(p)[1];
+        float tmaxScatter = intersectParams(p, voxelHalfSide)[1];
         p.moveToPointAlong(tmaxScatter); // Advance particle to exit of Voxel
     } else if(record.event == ABSORB) {
         // No need in two lines below since particle is deactivated anyway
@@ -88,8 +82,7 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
         p.deactivate();
     } else {
         float particleEnergy = p.getEnergy() / record.finalParticleCount;
-        Particle newP(NONE, particleEnergy,
-          Vector3{0.0, 0.0, 0.0}, Vector3{0.0, 0.0, 0.0});
+        Particle newP;
         float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
 
         // Iterate to create particles
@@ -106,22 +99,22 @@ std::vector<Particle> Voxel::processParticle(Particle& p) {
     return particlesCreated;
 }
 
-void Voxel::moveToExit(Particle& p) const {
-    // How far the point of exit is from origin along momentum Vector3
-    float exitAlongMom = intersectParams(p)[1];
+void Voxel::moveToExit(Particle& p, float voxelHalfSide) const {
+    // How far the point of exit is from position along momentum Vector3
+    float exitAlongMom = intersectParams(p, voxelHalfSide)[1];
     p.moveToPointAlong(exitAlongMom);
 }
 
-bool Voxel::intersects(const Particle& p) {
+bool Voxel::intersects(const Particle& p, float voxelHalfSide) const {
     float xmin, ymin, zmin;
-    xmin = position.x - halfSide;
-    ymin = position.y - halfSide;
-    zmin = position.z - halfSide;
+    xmin = position.x - voxelHalfSide;
+    ymin = position.y - voxelHalfSide;
+    zmin = position.z - voxelHalfSide;
 
     float xmax, ymax, zmax;
-    xmax = position.x + halfSide;
-    ymax = position.y + halfSide;
-    zmax = position.z + halfSide;
+    xmax = position.x + voxelHalfSide;
+    ymax = position.y + voxelHalfSide;
+    zmax = position.z + voxelHalfSide;
 
     float x = p.getX();
     float y = p.getY();
@@ -191,16 +184,16 @@ bool Voxel::intersects(const Particle& p) {
     return (tmax > tmin) ? true : false;
 }
 
-std::array<float, 2> Voxel::intersectParams(const Particle& p) const {
+std::array<float, 2> Voxel::intersectParams(const Particle& p, float voxelHalfSide) const {
     float xmin, ymin, zmin;
-    xmin = position.x - halfSide;
-    ymin = position.y - halfSide;
-    zmin = position.z - halfSide;
+    xmin = position.x - voxelHalfSide;
+    ymin = position.y - voxelHalfSide;
+    zmin = position.z - voxelHalfSide;
 
     float xmax, ymax, zmax;
-    xmax = position.x + halfSide;
-    ymax = position.y + halfSide;
-    zmax = position.z + halfSide;
+    xmax = position.x + voxelHalfSide;
+    ymax = position.y + voxelHalfSide;
+    zmax = position.z + voxelHalfSide;
 
     float x = p.getX();
     float y = p.getY();
@@ -275,11 +268,11 @@ VoxelType Voxel::getType() const {
     return type;
 }
 
-void Voxel::setPosition(const Vector3& newPos) {
-    position = newPos;
+void Voxel::setPosition(const Vector3& newPosition) {
+    position = newPosition;
 }
 
-Vector3 Voxel::getPosition() {
+Vector3 Voxel::getPosition() const {
     return position;
 }
 
@@ -299,7 +292,7 @@ std::vector<Particle> Voxel::getPartsEmittedList(float timeElapsed) {
 
 int Voxel::getPartsEmitted(float time) {
     assert(type == SOURCE);
-    return sample.generateParticles(time, position,
+    return sample.generateParticles(time, Vector3{0.0, 0.0, 0.0},
       *uniform_real_dist_ptr, *gen_ptr).size();
 }
 

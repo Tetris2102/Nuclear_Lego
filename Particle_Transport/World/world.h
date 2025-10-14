@@ -16,6 +16,7 @@ class World {
         short int sizeZ = 4.0;
 
         float voxelSide;
+        float voxelHalfSide;
 
         std::vector<Voxel> scene;
         std::vector<Particle> particles = {};
@@ -24,12 +25,14 @@ class World {
         std::vector<Voxel*> matters = {};
         std::vector<Voxel*> detectors = {};
 
+        Vector3 getVoxelPosVec3(int index);
         void updateLists();
         // Get the next voxel a particle will pass
         Voxel& nextVoxel(Particle& p);
         void addParticlesEmitted(float time);
         // Erase deactivated or escaped particles
         void cleanParticles();
+        Vector3 getVoxelPos(const Voxel& v);
     public:
         World(short int _sizeX, short int _sizeY, short int _sizeZ,
           float _voxelSide) {
@@ -37,6 +40,7 @@ class World {
             sizeY = _sizeY;
             sizeZ = _sizeZ;
             voxelSide = _voxelSide;
+            voxelHalfSide = _voxelSide / 2;
         }
 
         // Voxel indexing begins at 0, i.e. voxel closest to origin is at {0, 0, 0}
