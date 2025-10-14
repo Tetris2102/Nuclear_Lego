@@ -27,9 +27,9 @@ int main(int argc, char const *argv[]) {
 
     World world(x, y, z, 4.0);
     std::vector<Voxel> scene = {
-        sourceInAir, detector,    sourceInAir,    air, air, air, air, air, air,
-           air,    sourceInAir, detector, air, air, air, air, air, air,
-           air,        air,       air,    air, air, air, air, air, air
+        sourceInAir, detector, sourceInAir, detector,  air,    air, air, air, air,
+         detector,  sourceInAir, detector,    air,   detector, air, air, air, air,
+           air,        air,       air,        air,     air,    air, air, air, air
     };
     world.setScene(scene);
 
@@ -40,7 +40,7 @@ int main(int argc, char const *argv[]) {
     auto end = std::chrono::high_resolution_clock::now();
 
     int partsD1 = world.voxelAt(1, 0, 0).getPartsAbsorbed();
-    int partsD2 = world.voxelAt(2, 0, 1).getPartsAbsorbed();
+    int partsD2 = world.voxelAt(1, 1, 1).getPartsAbsorbed();
 
     std::cout << "Simulated for 10.0 s" << std::endl;
     std::cout << "Results:" << std::endl;
