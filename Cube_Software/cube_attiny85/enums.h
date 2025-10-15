@@ -1,3 +1,5 @@
+// enums.h
+
 #ifndef ENUMS_H
 #define ENUMS_H
 
@@ -8,12 +10,12 @@ enum VoxelType : uint8_t {
 };
 
 enum MaterialType : uint8_t {
-    AIR,
-    WAX,
-    PB_207,
-    BE_9,
-    U_235,
-    PU_238
+    AIR_M,
+    WAX_M,
+    PB_207_M,
+    BE_9_M,
+    U_235_M,
+    PU_238_M
 };
 
 // In Bequerels (decays/second)
@@ -29,11 +31,12 @@ enum SourceActivity : uint8_t {
 };
 
 enum IsotopeSampleType : uint8_t {
-    RA_226,  // alpha
-    PU_238,  // alpha
-    SR_90,   // beta
-    CS_137,  // gamma
-    CF_252   // neutron
-}
+    NONE_S,
+    RA_226_S,  // alpha
+    PU_238_S,  // alpha
+    SR_90_S,   // beta
+    CS_137_S,  // gamma
+    CF_252_S   // neutron
+};
 
 #endif
