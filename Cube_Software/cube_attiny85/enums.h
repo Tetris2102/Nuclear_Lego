@@ -18,18 +18,6 @@ enum MaterialType : uint8_t {
     PU_238_M
 };
 
-// In Bequerels (decays/second)
-enum SourceActivity : uint8_t {
-    _0,
-    _50,
-    _100,
-    _500,
-    _1000,
-    _5000,
-    _10000,
-    _50000
-};
-
 enum IsotopeSampleType : uint8_t {
     NONE_S,
     RA_226_S,  // alpha
