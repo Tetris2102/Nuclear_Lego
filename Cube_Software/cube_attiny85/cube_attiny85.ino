@@ -61,8 +61,8 @@ void updateParams() {
     uint16_t lvl_in = analogRead(PIN_LVL_IN);
     level = map(lvl_in, 0, 1023, 0, MAX_HEIGHT);
 
-    if(lvl_in != MAX_HEIGHT) {
-        uint8_t lvl_out = map(level + 1, 0, 65535, 0, MAX_HEIGHT);
+    if(level != MAX_HEIGHT) {
+        uint8_t lvl_out = map(level + 1, 0, MAX_HEIGHT, 0, 255);
         analogWrite(PIN_LVL_OUT, lvl_out);
     } else {
         digitalWrite(PIN_LVL_OUT, HIGH);
