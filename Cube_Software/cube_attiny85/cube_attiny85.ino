@@ -6,12 +6,13 @@
 
 // SDA at PB0
 // SCL at PB2
-#define PIN_PRES_IN 1  // Upper presence pin
+// Upper presence pin, Have to connect pull-down resistor (e.g. 10 kOhm)
+#define PIN_PRES_IN 1
 #define PIN_BUZZ 3     // Buzzer pin
 // Have to connect RC network to PIN_LVL_OUT
 // to smooth PWM (C=4.7uF, R=1.0kOhm)
 #define PIN_LVL_OUT 4
-#define PIN_LVL_IN 5  // Have to connect pull-down resistor (e.g. 10 kOhm)
+#define PIN_LVL_IN 5
 
 VoxelType voxelType;           // at EEPROM 0
 MaterialType materialType;     // at EEPROM 1
@@ -76,7 +77,8 @@ void updateParams() {
 void reportOnRequest() {
     TinyWireS.write(static_cast<uint8_t>(voxelType));
     TinyWireS.write(static_cast<uint8_t>(materialType));
-    TinyWireS.write(static_cast<uint8_t>(activity));
+    TinyWireS.write(static_cast<uint8_t>(activity & 0xFF));  // Least significant byte first
+    TinyWireS.write(static_cast<uint8_t>(activity >> 8));    // Most significant byte
     TinyWireS.write(static_cast<uint8_t>(sampleType));
     TinyWireS.write(level);
     TinyWireS.write(hasCubeAbove);
