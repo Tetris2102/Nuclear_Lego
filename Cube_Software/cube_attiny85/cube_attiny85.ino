@@ -1,26 +1,22 @@
 #include <TinyWireS.h>
 #include <EEPROM.h>
-#include "enums.h"
 
-#define MAX_HEIGHT 2  // Maximum height MINUS 1, so indexing begins from 0
+#define MAX_LEVEL 2  // Maximum height MINUS 1, so indexing begins from 0
 
 // SDA at PB0
 // SCL at PB2
-// Upper presence pin, Have to connect pull-down resistor (e.g. 10 kOhm)
-#define PIN_PRES_IN 1
 #define PIN_BUZZ 3     // Buzzer pin
 // Have to connect RC network to PIN_LVL_OUT
 // to smooth PWM (C=4.7uF, R=1.0kOhm)
-#define PIN_LVL_OUT 4
-#define PIN_LVL_IN 5
+#define PIN_LVL_OUT 1
+#define PIN_LVL_IN 4
 
-VoxelType voxelType;           // at EEPROM 0
-MaterialType materialType;     // at EEPROM 1
-uint16_t activity;       // at EEPROM 2 and 3
-IsotopeSampleType sampleType;  // at EEPROM 4
+uint8_t voxelType;           // at EEPROM 0
+uint8_t materialType;     // at EEPROM 1
+uint16_t activity;             // at EEPROM 2 and 3
+uint8_t sampleType;  // at EEPROM 4
 
 uint8_t level;
-bool hasCubeAbove;
 
 void updateParams();
 void reportOnRequest();
@@ -29,7 +25,6 @@ uint16_t msBetweenDecays(uint16_t activity);
 void beepBuzzer();
 
 void setup() {
-    pinMode(PIN_PRES_IN, INPUT);
     pinMode(PIN_BUZZ, OUTPUT);
     pinMode(PIN_LVL_OUT, OUTPUT);
     pinMode(PIN_LVL_IN, INPUT);
@@ -38,7 +33,7 @@ void setup() {
 
     updateParams();
 
-    TinyWireS.begin(level + 8);  // Use level as I2C address beginning from 8
+    TinyWireS.begin(8);  // Use level as I2C address beginning from 8
     // Safe I2C addresses (not reserved): 8-119
 
     TinyWireS.onRequest(reportOnRequest);
@@ -62,16 +57,10 @@ void loop() {
 
 void updateParams() {
     uint16_t lvl_in = analogRead(PIN_LVL_IN);
-    level = map(lvl_in, 0, 1023, 0, MAX_HEIGHT);
+    level = map(lvl_in, 0, 1023, 0, MAX_LEVEL);
 
-    if(level != MAX_HEIGHT) {
-        uint8_t lvl_out = map(level + 1, 0, MAX_HEIGHT, 0, 255);
-        analogWrite(PIN_LVL_OUT, lvl_out);
-    } else {
-        digitalWrite(PIN_LVL_OUT, HIGH);
-    }
-
-    hasCubeAbove = digitalRead(PIN_PRES_IN);
+    uint8_t lvl_out = map(level + 1, 0, MAX_LEVEL, 0, 255);
+    analogWrite(PIN_LVL_OUT, lvl_out);
 }
 
 void reportOnRequest() {
@@ -81,15 +70,14 @@ void reportOnRequest() {
     TinyWireS.write(static_cast<uint8_t>(activity >> 8));    // Most significant byte
     TinyWireS.write(static_cast<uint8_t>(sampleType));
     TinyWireS.write(level);
-    TinyWireS.write(hasCubeAbove);
 }
 
 void receiveAndStore(uint8_t numBytes) {
-    if(numBytes == 6) {
-        voxelType = static_cast<VoxelType>(TinyWireS.read());
-        materialType = static_cast<MaterialType>(TinyWireS.read());
+    if(numBytes == 5) {
+        voxelType = static_cast<uint8_t>(TinyWireS.read());
+        materialType = static_cast<uint8_t>(TinyWireS.read());
         activity = TinyWireS.read() | (TinyWireS.read() << 8);
-        sampleType = static_cast<IsotopeSampleType>(TinyWireS.read());
+        sampleType = static_cast<uint8_t>(TinyWireS.read());
 
         EEPROM.update(0, voxelType);
         EEPROM.update(1, materialType);

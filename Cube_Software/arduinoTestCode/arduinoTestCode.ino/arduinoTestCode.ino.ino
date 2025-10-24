@@ -7,7 +7,7 @@ void setup() {
 
 uint8_t voxelType = 1;      // MATTER
 uint8_t materialType = 2;   // PB_207_M
-uint16_t activity = 48000;  // 48 kBq
+uint16_t activity = 0;  // 48 kBq
 uint8_t isotopeSample = 0;  // NONE_S
 
 void loop() {
@@ -25,12 +25,14 @@ void loop() {
     Wire.write(isotopeSample);
     Wire.endTransmission();
 
+    delay(5);
+
     Serial.println("Cube parameters written.");
 
     Serial.println("Requesting data...");
     Serial.println("\n");
 
-    Wire.requestFrom(8, 7);  // Request 7 bytes
+    Wire.requestFrom(8, 6);  // Request 6 bytes
 
     Serial.print("VoxelType: ");
     Serial.println(Wire.read());
@@ -41,8 +43,6 @@ void loop() {
     Serial.print("SampleType: ");
     Serial.println(Wire.read());
     Serial.print("Level: ");
-    Serial.println(Wire.read());
-    Serial.print("Has cube above: ");
     Serial.println(Wire.read());
 
     Serial.println("\n");
