@@ -7,21 +7,23 @@
 #include <random>
 #include <iostream>
 #include <chrono>
+#include <mutex>
+#include <memory>
+#include <utility>
+
+// TODO: make Voxel::processParticle() accept pointers to RNG objects
+// instead of having RNG instances for every object
 
 int main(int argc, char const *argv[]) {
 
     Material airMat = getAir();
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dist(0, 1);
-
-    Voxel air(MATTER, airMat, gen, dist);
+    Voxel air(MATTER, airMat);
 
     IsotopeSample betaSample("betaSample", BETA, 1.0, 10000);
-    Voxel sourceInAir(SOURCE, airMat, betaSample, gen, dist);
+    Voxel sourceInAir(SOURCE, airMat, betaSample);
 
-    Voxel detector(DETECTOR, airMat, gen, dist);
+    Voxel detector(DETECTOR, airMat);
 
     const short int x = 3, y = 3, z = 3;
 
@@ -34,13 +36,13 @@ int main(int argc, char const *argv[]) {
     world.setScene(scene);
 
     auto start = std::chrono::high_resolution_clock::now();
-    for(int i = 0; i<40; i++) {
-        world.simulate(0.25);
+    for(int i = 0; i<1; i++) {
+        world.simulate(10.0);
     }
     auto end = std::chrono::high_resolution_clock::now();
 
-    int partsD1 = world.voxelAt(1, 0, 0).getPartsAbsorbed();
-    int partsD2 = world.voxelAt(1, 1, 1).getPartsAbsorbed();
+    int partsD1 = world.voxelAt(0, 1, 0).getPartsAbsorbed();
+    int partsD2 = world.voxelAt(0, 0, 1).getPartsAbsorbed();
 
     std::cout << "Simulated for 10.0 s" << std::endl;
     std::cout << "Results:" << std::endl;

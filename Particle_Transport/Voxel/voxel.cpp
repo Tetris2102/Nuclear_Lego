@@ -5,7 +5,7 @@
 #include "../Particle/particle.h"
 #include <algorithm>
 #include <cmath>
-#include <utility>
+// #include <utility>
 
 float Voxel::getTotalIntProb(const Particle& p, float travelDist) {
     std::array<float, 3> xss = material.getEventXSs(p);
@@ -17,57 +17,62 @@ float Voxel::getTotalIntProb(const Particle& p, float travelDist) {
     return 1.0 - std::exp(-totMacroXS * travelDist);
 }
 
-XSRecord Voxel::chooseEventAndXS(const Particle& p) {
+XSRecord Voxel::chooseEventAndXS(const Particle& p, std::mt19937& gen) {
     std::array<XSRecord, 3> records = material.getEventRecords(p);
     std::array<float, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
     std::discrete_distribution<int> discrete_dist{xss.begin(), xss.end()};
-    XSRecord recordChosen = records[discrete_dist(*gen_ptr)];
+    XSRecord recordChosen = records[discrete_dist(gen)];
     return recordChosen;
 }
 
-float Voxel::chooseIntDistAlong(float xs, float tmin, float tmax) {
-    float u = (*uniform_real_dist_ptr)(*gen_ptr);
+float Voxel::chooseIntDistAlong(float xs, float tmin, float tmax,
+  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
+    float u = dist(gen);
     float sigma = material.getADensity() * xs;  // Macroscopic cross-section
     // Use cumulative distribution function, i.e. probability of interaction
     // increases along particle path
     return tmin - (1/sigma) * std::log(1 - u*(1-std::exp(-sigma*(tmax-tmin))));
 }
 
-Vector3 Voxel::getScatterMomentum(const Vector3& oldMom, float energy) {
+Vector3 Voxel::getScatterMomentum(const Vector3& oldMom, float energy,
+  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
     float theta_max = REF_THETA / std::sqrt(energy);
-    float theta = (*uniform_real_dist_ptr)(*gen_ptr) * theta_max;
-    float phi = (*uniform_real_dist_ptr)(*gen_ptr) * TWO_PI;
-    Vector3 randOrthVec = oldMom.randomOrthogonalV3((*uniform_real_dist_ptr)(*gen_ptr),
-      (*uniform_real_dist_ptr)(*gen_ptr), (*uniform_real_dist_ptr)(*gen_ptr));
+    float theta = dist(gen) * theta_max;
+    float phi = dist(gen) * 6.283;  // Multiply by 2*pi
+    Vector3 randOrthVec = oldMom.randomOrthogonalV3(dist(gen),
+      dist(gen), dist(gen));
     Vector3 scatterMom = (oldMom * std::cos(theta) +
       randOrthVec.cross(oldMom) * std::sin(theta));
     scatterMom.normalize();
     return scatterMom;
 }
 
-std::vector<Particle> Voxel::processParticle(Particle& p, float voxelHalfSide) {
+std::vector<Particle> Voxel::processParticle(Particle& p, float voxelHalfSide,
+  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
     // Check if particle passes through Voxel
     if(!intersects(p, voxelHalfSide)) return {};
+    // Discard deactivated particles
+    if(!p.isActive()) return {};
 
     // Check if particle will undergo any event
     float tmin = intersectParams(p, voxelHalfSide)[0];
     float tmax = intersectParams(p, voxelHalfSide)[1];
     float prob = getTotalIntProb(p, tmax-tmin);
-    if((*uniform_real_dist_ptr)(*gen_ptr) > prob) {
+    if(dist(gen) > prob) {
         // Same as moveToExit(p);
         p.moveToPointAlong(tmax);  // Particle just passes through
         return {};
     }
 
     // Choose record to use (including EventType, cross-section, etc.)
-    XSRecord record = chooseEventAndXS(p);
+    XSRecord record = chooseEventAndXS(p, gen);
 
     std::vector<Particle> particlesCreated;
 
     if(record.event == SCATTER) {
-        float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
+        float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax, dist, gen);
         p.moveToPointAlong(intDistAlong);
-        p.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy()));
+        p.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy(), dist, gen));
         float tmaxScatter = intersectParams(p, voxelHalfSide)[1];
         p.moveToPointAlong(tmaxScatter); // Advance particle to exit of Voxel
     } else if(record.event == ABSORB) {
@@ -83,21 +88,32 @@ std::vector<Particle> Voxel::processParticle(Particle& p, float voxelHalfSide) {
     } else {
         float particleEnergy = p.getEnergy() / record.finalParticleCount;
         Particle newP;
-        float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax);
+        float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax, dist, gen);
 
         // Iterate to create particles
         for(int i = 0; i<record.finalParticleCount; i++) {
             newP.setType(record.finalParticle);
             newP.moveToPointAlong(intDistAlong);
-            newP.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy()));
+            newP.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy(), dist, gen));
             particlesCreated.push_back(newP);
         }
 
+        // Detect particle if applicable
+        if(type == DETECTOR) {
+            particlesAbsorbed.push_back(p);
+        }
         p.deactivate();  // Incident particle absorbed
     }
 
     return particlesCreated;
 }
+
+// std::vector<Particle> Voxel::processParticleThreadSafe(Particle& p,
+//   float voxelHalfSide, std::uniform_real_distribution<float>& dist,
+//   std::mt19937& gen) {
+//     std::lock_guard<std::mutex> lock(voxelMutex);
+//     return processParticle(p, voxelHalfSide, dist, gen);
+// }
 
 void Voxel::moveToExit(Particle& p, float voxelHalfSide) const {
     // How far the point of exit is from position along momentum Vector3
@@ -284,16 +300,18 @@ Material Voxel::getMaterial() {
     return material;
 }
 
-std::vector<Particle> Voxel::getPartsEmittedList(float timeElapsed) {
+std::vector<Particle> Voxel::getPartsEmittedList(float timeElapsed,
+  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
     assert(type == SOURCE);
     return sample.generateParticles(timeElapsed, position,
-      *uniform_real_dist_ptr, *gen_ptr);
+      dist, gen);
 }
 
-int Voxel::getPartsEmitted(float time) {
+int Voxel::getPartsEmitted(float time,
+  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
     assert(type == SOURCE);
     return sample.generateParticles(time, Vector3{0.0, 0.0, 0.0},
-      *uniform_real_dist_ptr, *gen_ptr).size();
+      dist, gen).size();
 }
 
 std::vector<Particle> Voxel::getPartsAbsorbedList() {

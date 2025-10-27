@@ -1,11 +1,13 @@
 // world.cpp
 
 #include "world.h"
+#include "../config.h"
 #include <cmath>
 #include <array>
 #include <cassert>
 #include <algorithm>  // std::clamp is used (C++17)
-#include <iostream>
+#include <utility>
+#include <functional>  // for std::ref()
 
 // dir has to be normalized
 Vector3 pointAlongVec3(const Vector3& origin, const Vector3& dir, float t) {
@@ -16,15 +18,45 @@ Vector3 pointAlongVec3(const Vector3& origin, const Vector3& dir, float t) {
     return Vector3{x, y, z};
 }
 
-// Vector3 getVoxelPos(const Voxel& v) {
-//
-// }
+void World::processParticlesRange(int thrIdx, size_t startIdx, size_t endIdx,
+  std::vector<Particle>& currentParticles, uint32_t seed) {
+
+    std::mt19937 threadGen(seed);
+    std::uniform_real_distribution<float> threadDist(0, 1);
+
+    for(size_t i = startIdx; i<endIdx; i++) {
+        Particle& p = currentParticles[i];
+        auto vPos = nextVoxelPosVec(p);
+        auto v = voxelAt(vPos.x, vPos.y, vPos.z);
+
+        auto newParticles = v.processParticle(p, voxelHalfSide,
+          threadDist, threadGen);
+
+        if(!newParticles.empty()) {
+            // std::lock_guard<std::mutex> partLock(newParticlesMutex);
+            threadsNewParticles[thrIdx] = newParticles;
+        }
+
+        // // Create separate scope for std::lock_guard
+        // {
+        //     std::lock_guard<std::mutex> lock(
+        //       (voxelMutexes[indexAt(vPos.x, vPos.y, vPos.z)]));
+        //     auto newParticles = v.processParticle(p, voxelHalfSide,
+        //       threadDist, threadGen);
+        //
+        //     if(!newParticles.empty()) {
+        //         std::lock_guard<std::mutex> partLock(newParticlesMutex);
+        //         threadsNewParticles[thrIdx] = newParticles;
+        //     }
+        // }
+    }
+}
 
 // For float, not short int position
-Vector3 World::getVoxelPosVec3(int index) {
-    float x = index % 3;
-    float y = std::floor(index / 3);
-    float z = std::floor(index / 9);
+Vector3 World::getVoxelCoordVec3(int index) {
+    float x = index % sizeX;
+    float y = (index / sizeX) % sizeY;
+    float z = index / (sizeX * sizeY);
 
     return Vector3{(x+1) * voxelHalfSide,
       (y+1) * voxelHalfSide,
@@ -48,40 +80,6 @@ void World::updateLists() {
     }
 }
 
-/*
-  Formulas for indices of 6 voxels adjacent to given voxel,
-  given its index j:
-  i_1 = j + 1
-  i_2 = j - 1
-  i_3 = j + sizeX
-  i_4 = j - sizeX
-  i_5 = j + sizeX * sizeY
-  i_6 = j - sizeX * sizeY
-  i_7 = j + sizeX * (sizeY-1)
-  i_8 = j + (sizeX-1) * (sizeY-1)
-  i_9 = j + (sizeX-1) * sizeY
-*/
-// TransportOut World::nextVoxel(Particle& p) {
-//     short int x = std::floor(p.getX() / voxelSide);
-//     short int y = std::floor(p.getY() / voxelSide);
-//     short int z = std::floor(p.getZ() / voxelSide);
-//     int j = indexAt(x, y, z);
-//     std::array<int, 6> adjIndices = {
-//         j + 1,
-//         j - 1,
-//         j + sizeX,
-//         j - sizeX,
-//         j + sizeX * sizeY,
-//         j - sizeX * sizeY
-//     };
-//
-//     for(auto& i : adjIndices) {
-//         if(scene[i].intersects(p)) return scene[i];
-//     }
-//     return scene[0];  // Else redirect particle to first voxel, which will
-//                       // just discard it because no intersection occurs
-// }
-
 Voxel& World::nextVoxel(Particle& p) {
     Vector3 pos = p.getPosition();
     Vector3 dir = p.getMomentum();
@@ -97,7 +95,7 @@ Voxel& World::nextVoxel(Particle& p) {
     } else {
         nextBoundaryX = sizeX * voxelSide + 1; // Effectively infinity
     }
-    
+
     if(dir.y != 0) {
         nextBoundaryY = (((dir.y > 0) ? (y+1) : y) * voxelSide - pos.y) / dir.y;
     } else {
@@ -138,16 +136,72 @@ Voxel& World::nextVoxel(Particle& p) {
                               // float absolute positions
 }
 
+Vector3 World::nextVoxelPosVec(Particle& p) {
+    Vector3 pos = p.getPosition();
+    Vector3 dir = p.getMomentum();
+    short int x = std::floor(pos.x / voxelSide);
+    short int y = std::floor(pos.y / voxelSide);
+    short int z = std::floor(pos.z / voxelSide);
+
+    float nextBoundaryX, nextBoundaryY, nextBoundaryZ;
+
+    // Distance along the ray to closest planes along itself
+    if(dir.x != 0) {
+        nextBoundaryX = (((dir.x > 0) ? (x+1) : x) * voxelSide - pos.x) / dir.x;
+    } else {
+        nextBoundaryX = sizeX * voxelSide + 1; // Effectively infinity
+    }
+
+    if(dir.y != 0) {
+        nextBoundaryY = (((dir.y > 0) ? (y+1) : y) * voxelSide - pos.y) / dir.y;
+    } else {
+        nextBoundaryY = sizeY * voxelSide + 1; // Effectively infinity
+    }
+
+    if(dir.z != 0) {
+        nextBoundaryZ = (((dir.z > 0) ? (z+1) : z) * voxelSide - pos.z) / dir.z;
+    } else {
+        nextBoundaryZ = sizeZ * voxelSide + 1; // Effectively infinity
+    }
+
+    float closestDistAlong = std::min({
+      nextBoundaryX, nextBoundaryY, nextBoundaryZ});
+
+    Vector3 point = pointAlongVec3(
+      p.getPosition(), p.getMomentum(), closestDistAlong);
+
+    x = std::floor(point.x / voxelSide);
+    y = std::floor(point.y / voxelSide);
+    z = std::floor(point.z / voxelSide);
+
+    // Check if particle is out of bonds of the world
+    if(x < 0 || x > sizeX - 1) {
+        p.deactivate();
+        return Vector3(0, 0, 0);
+    }
+    if(y < 0 || y > sizeY - 1) {
+        p.deactivate();
+        return Vector3(0, 0, 0);
+    }
+    if(z < 0 || z > sizeZ - 1) {
+        p.deactivate();
+        return Vector3(0, 0, 0);
+    }
+
+    return Vector3(x, y, z);  // Convert short int indices into
+                              // float absolute positions
+}
+
 void World::addParticlesEmitted(float time) {
     for(auto* voxel : sources) {
-        auto particlesEmitted = voxel->getPartsEmittedList(time);
+        auto particlesEmitted = voxel->getPartsEmittedList(time, dist, gen);
         for(auto& p : particlesEmitted) voxel->moveToExit(p, voxelHalfSide);
         particles.insert(particles.end(), particlesEmitted.begin(),
           particlesEmitted.end());
     }
 }
 
-void World::cleanParticles() {
+void World::cleanParticles(std::vector<Particle>& partList) {
     // Maximum scene dimensions
     float maxX = voxelSide * sizeX;
     float maxY = voxelSide * sizeY;
@@ -161,16 +215,16 @@ void World::cleanParticles() {
         return (!p.isActive() || xEscaped || yEscaped || zEscaped);
     };
 
-    particles.erase(
-      std::remove_if(particles.begin(), particles.end(), toRemove),
-      particles.end()
+    partList.erase(
+      std::remove_if(partList.begin(), partList.end(), toRemove),
+      partList.end()
     );
 }
 
 // Voxels in scene are individually numbered from 0, first along x-axis,
 // then in rows along y-axis, then in layers along z-axis
 int World::indexAt(short int x, short int y, short int z) const {
-    return x + sizeX * (y + sizeY * z);
+    return x + sizeX * (y + z * sizeY);
 }
 
 Voxel& World::voxelAt(short int x, short int y, short int z) {
@@ -180,13 +234,59 @@ Voxel& World::voxelAt(short int x, short int y, short int z) {
     return scene[indexAt(x, y, z)];
 }
 
+// void World::simulate(float time) {
+//     addParticlesEmitted(time);
+//
+//     for(auto& p : particles) {
+//         nextVoxel(p).processParticle(p, voxelHalfSide);
+//     }
+//     cleanParticles();
+// }
+
 void World::simulate(float time) {
     addParticlesEmitted(time);
 
-    for(auto& p : particles) {
-        nextVoxel(p).processParticle(p, voxelHalfSide);
+    if(particles.size() < 500 || !MULTITHREAD_ON) {
+        for(auto& p : particles) {
+            nextVoxel(p).processParticle(p, voxelHalfSide, dist, gen);
+        }
+
+        cleanParticles(particles);
+    } else {
+        std::vector<Particle> currentParticles;
+
+        const size_t particlesPerThread = particles.size() / N_THREADS;
+        std::vector<std::thread> threads;
+
+        // Avoid race condition because of reading
+        // and modifying the same vector
+        currentParticles = std::move(particles);
+
+        std::array<uint32_t, N_THREADS> seeds;
+
+        for(int i = 0; i<threadsNewParticles.size(); i++) {
+            threadsNewParticles[i] = {};
+        }
+
+        for(size_t i = 0; i<N_THREADS; i++) {
+            size_t startIdx = i * particlesPerThread;
+            size_t endIdx = (i == N_THREADS - 1) ?
+              currentParticles.size() : startIdx + particlesPerThread;
+
+            threads.emplace_back(&World::processParticlesRange,
+              this, i, startIdx, endIdx, std::ref(currentParticles),
+              threadSeeds[i]);
+        }
+
+        for(auto& t : threads) t.join();
+
+        cleanParticles(currentParticles);
+        particles = std::move(currentParticles);
+        for(const auto& pList : threadsNewParticles) {
+            particles.insert(particles.end(),
+              pList.begin(), pList.end());
+        }
     }
-    cleanParticles();
 }
 
 void World::setScene(std::vector<Voxel>& newScene, short int newX,
@@ -196,8 +296,9 @@ void World::setScene(std::vector<Voxel>& newScene, short int newX,
     if(newZ != 0) sizeZ = newZ;
 
     scene = newScene;
+    // voxelMutexes.resize(scene.size());  // must have a mutex for each voxel
     for(int i = 0; i<newScene.size(); i++) {
-        scene[i].setPosition(getVoxelPosVec3(i));
+        scene[i].setPosition(getVoxelCoordVec3(i));
     }
     updateLists();
 }
