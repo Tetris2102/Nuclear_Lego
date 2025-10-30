@@ -9,12 +9,12 @@
 #include "../Material/material.h"
 #include "../IsotopeSample/isotopeSample.h"
 #include "../Vector3/vector3.h"
-// #include <utility>
 #include <array>
 #include <vector>
 #include <cassert>
-// #include <random>
-// #include <mutex>
+#include <mutex>
+#include <atomic>
+#include <utility>
 
 enum VoxelType {
     SOURCE,
@@ -31,10 +31,9 @@ enum VoxelType {
 class Voxel {
     private:
         VoxelType type;
-        Vector3 position;
         Material material;
         IsotopeSample sample;
-        std::vector<Particle> particlesAbsorbed;  // For DETECTOR Voxels
+        // std::vector<Particle> particlesAbsorbed;  // For DETECTOR Voxels
 
         // Probability of any interaction happening
         float getTotalIntProb(const Particle& p, float travelDist);
@@ -44,12 +43,14 @@ class Voxel {
         Vector3 getScatterMomentum(const Vector3& oldMom, float energy,
           std::uniform_real_distribution<float>& dist, std::mt19937& gen);
 
-        // RNG pointers
-        // std::random_device rd;
-        // std::mt19937 gen;
-        // Distribution should be in (0, 1) range
-        // std::uniform_real_distribution<float> uniform_real_dist;
-        // mutable std::mutex voxelMutex;
+        mutable std::mutex voxelMutex;
+        // std::atomic<int> nAlphaAbsorbed;
+        // std::atomic<int> nBetaAbsorbed;
+        // std::atomic<int> nGammaAbsorbed;
+        //
+        // std::vector<ParticleType> detects = {ALPHA, BETA, GAMMA};
+
+        // std::atomic<int> nPartsAbsorbed{0};
     public:
 
         // For MATTER and DETECTOR
@@ -68,31 +69,49 @@ class Voxel {
         }
 
         // Manage reactions and their probabilities for a particle
-        // Returns vector of particles created (if any)
-        std::vector<Particle> processParticle(Particle& p, float voxelHalfSide,
+        // Returns std::pair of vector of particles created + vector
+        // of particles absorbed (if any)
+        std::pair<std::vector<Particle>, std::vector<Particle>> processParticle(
+          Particle& p, const Vector3& voxelPosition, float voxelHalfSide,
           std::uniform_real_distribution<float>& dist, std::mt19937& gen);
 
-        // For multithreading
-        std::vector<Particle> processParticleThreadSafe(Particle& p,
-          float voxelHalfSide, std::uniform_real_distribution<float>& dist,
-          std::mt19937& gen);
+        // For multithreading, output the same as from processParticle()
+        std::pair<std::vector<Particle>, std::vector<Particle>> processParticleThreadSafe(
+          Particle& p, const Vector3& voxelPosition, float voxelHalfSide,
+          std::uniform_real_distribution<float>& dist, std::mt19937& gen);
 
-        void moveToExit(Particle& p, float voxelHalfSide) const;
-        bool intersects(const Particle& p, float voxelHalfSide) const;
+        void moveToExit(Particle& p, float voxelHalfSide,
+          const Vector3& voxelPos) const;
+        bool intersects(const Particle& p, float voxelHalfSide,
+          const Vector3& position) const;
         std::array<float, 2> intersectParams(const Particle& p,
-          float voxelHalfSide) const;  // returns [tmin, tmax]
+          float voxelHalfSide, const Vector3& position) const;  // returns [tmin, tmax]
         VoxelType getType() const;
-        void setPosition(const Vector3& newPosition);
-        Vector3 getPosition() const;
+        // void setPosition(const Vector3& newPosition);
+        // Vector3 getPosition() const;
         void setMaterial(const Material& newMat);
         Material getMaterial();
         std::vector<Particle> getPartsEmittedList(float timeElapsed,
-          std::uniform_real_distribution<float>& dist, std::mt19937& gen);
-        int getPartsEmitted(float time,
-          std::uniform_real_distribution<float>& dist, std::mt19937& gen);
-        std::vector<Particle> getPartsAbsorbedList();
-        int getPartsAbsorbed();
-        void clearPartsAbsorbed();
+          const Vector3& position, std::uniform_real_distribution<float>& dist,
+          std::mt19937& gen);
+        // Get mutex by reference
+        std::mutex& getMtxRef();
+        
+    // Instrumentation helpers (global across all voxels)
+    struct VoxelStats {
+      int passes;
+      int scatters;
+      int absorbs;
+      int created;
+    };
+
+    static VoxelStats getGlobalStats();
+    static void resetGlobalStats();
+        // int getPartsEmitted(float time,
+        //   std::uniform_real_distribution<float>& dist, std::mt19937& gen);
+        // std::vector<Particle> getPartsAbsorbedList();
+        // int getPartsAbsorbed();
+        // void clearPartsAbsorbed();
 };
 
 #endif

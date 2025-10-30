@@ -3,6 +3,7 @@
 #include "world.h"
 #include "../config.h"
 #include <cmath>
+#include <limits>
 #include <array>
 #include <cassert>
 #include <algorithm>  // std::clamp is used (C++17)
@@ -26,41 +27,59 @@ void World::processParticlesRange(int thrIdx, size_t startIdx, size_t endIdx,
 
     for(size_t i = startIdx; i<endIdx; i++) {
         Particle& p = currentParticles[i];
+        if(!p.isActive()) continue;
         auto vPos = nextVoxelPosVec(p);
-        auto v = voxelAt(vPos.x, vPos.y, vPos.z);
+                auto* vEntryPtr = voxelEntryAtPos(vPos);
 
-        auto newParticles = v.processParticle(p, voxelHalfSide,
-          threadDist, threadGen);
+                if(!vEntryPtr) {
+                        // Particle has left the world or produced NaN/Inf position; deactivate
+                        p.deactivate();
+                        continue;
+                }
 
-        if(!newParticles.empty()) {
-            // std::lock_guard<std::mutex> partLock(newParticlesMutex);
-            threadsNewParticles[thrIdx] = newParticles;
+                auto results = vEntryPtr->vPtr->processParticleThreadSafe(p, vPos,
+                    voxelHalfSide, threadDist, threadGen);
+
+        if(!results.first.empty()) {
+            // append produced particles for this thread instead of overwriting
+            auto& out = threadsNewParticles[thrIdx];
+            out.insert(out.end(), results.first.begin(), results.first.end());
         }
-
-        // // Create separate scope for std::lock_guard
-        // {
-        //     std::lock_guard<std::mutex> lock(
-        //       (voxelMutexes[indexAt(vPos.x, vPos.y, vPos.z)]));
-        //     auto newParticles = v.processParticle(p, voxelHalfSide,
-        //       threadDist, threadGen);
-        //
-        //     if(!newParticles.empty()) {
-        //         std::lock_guard<std::mutex> partLock(newParticlesMutex);
-        //         threadsNewParticles[thrIdx] = newParticles;
-        //     }
-        // }
+        if(!results.second.empty()) {
+            vEntryPtr->addPartsAbsorbed(results.second);
+            // auto& out = threadPartAccumulator[i];
+            // out.insert(out.end(), results.second.begin(), results.first.end());
+        }
     }
 }
 
 // For float, not short int position
 Vector3 World::getVoxelCoordVec3(int index) {
-    float x = index % sizeX;
-    float y = (index / sizeX) % sizeY;
-    float z = index / (sizeX * sizeY);
+    int x = index % sizeX;
+    int y = (index / sizeX) % sizeY;
+    int z = index / (sizeX * sizeY);
 
-    return Vector3{(x+1) * voxelHalfSide,
-      (y+1) * voxelHalfSide,
-      (z+1) * voxelHalfSide};
+    return Vector3{
+        (x+1) * voxelHalfSide,
+        (y+1) * voxelHalfSide,
+        (z+1) * voxelHalfSide
+    };
+}
+
+Vector3 World::getVoxelCoordVec3(short int x, short int y, short int z) {
+    return Vector3{
+        (x+1) * voxelHalfSide,
+        (y+1) * voxelHalfSide,
+        (z+1) * voxelHalfSide
+    };
+}
+
+std::array<short int, 3> World::getVoxelPos(int index) {
+    return {
+        static_cast<short int>(std::round(index % sizeX)),
+        static_cast<short int>(std::round((index / sizeX) % sizeY)),
+        static_cast<short int>(std::round(index / (sizeX * sizeY)))
+    };
 }
 
 void World::updateLists() {
@@ -68,73 +87,74 @@ void World::updateLists() {
     matters = {};
     detectors = {};
 
-    for(auto& voxel : scene) {
-        VoxelType type = voxel.getType();
+    for(size_t i = 0; i<scene.size(); i++) {
+        VoxelEntry* entry_ptr = &scene[i];
+        VoxelType type = entry_ptr->vPtr->getType();
         if(type == SOURCE) {
-            sources.push_back(&voxel);
+            sources.push_back(entry_ptr);
         } else if (type == MATTER) {
-            matters.push_back(&voxel);
+            matters.push_back(entry_ptr);
         } else {
-            detectors.push_back(&voxel);
+            detectors.push_back(entry_ptr);
         }
     }
 }
 
-Voxel& World::nextVoxel(Particle& p) {
-    Vector3 pos = p.getPosition();
-    Vector3 dir = p.getMomentum();
-    short int x = std::floor(pos.x / voxelSide);
-    short int y = std::floor(pos.y / voxelSide);
-    short int z = std::floor(pos.z / voxelSide);
-
-    float nextBoundaryX, nextBoundaryY, nextBoundaryZ;
-
-    // Distance along the ray to closest planes along itself
-    if(dir.x != 0) {
-        nextBoundaryX = (((dir.x > 0) ? (x+1) : x) * voxelSide - pos.x) / dir.x;
-    } else {
-        nextBoundaryX = sizeX * voxelSide + 1; // Effectively infinity
-    }
-
-    if(dir.y != 0) {
-        nextBoundaryY = (((dir.y > 0) ? (y+1) : y) * voxelSide - pos.y) / dir.y;
-    } else {
-        nextBoundaryY = sizeY * voxelSide + 1; // Effectively infinity
-    }
-
-    if(dir.z != 0) {
-        nextBoundaryZ = (((dir.z > 0) ? (z+1) : z) * voxelSide - pos.z) / dir.z;
-    } else {
-        nextBoundaryZ = sizeZ * voxelSide + 1; // Effectively infinity
-    }
-
-    float closestDistAlong = std::min({
-      nextBoundaryX, nextBoundaryY, nextBoundaryZ});
-
-    Vector3 point = pointAlongVec3(
-      p.getPosition(), p.getMomentum(), closestDistAlong);
-
-    x = std::floor(point.x / voxelSide);
-    y = std::floor(point.y / voxelSide);
-    z = std::floor(point.z / voxelSide);
-
-    // Check if particle is out of bonds of the world
-    if(x < 0 || x > sizeX - 1) {
-        p.deactivate();
-        return scene[0];
-    }
-    if(y < 0 || y > sizeY - 1) {
-        p.deactivate();
-        return scene[0];
-    }
-    if(z < 0 || z > sizeZ - 1) {
-        p.deactivate();
-        return scene[0];
-    }
-
-    return voxelAt(x, y, z);  // Convert short int indices into
-                              // float absolute positions
-}
+// Voxel* World::nextVoxel(Particle& p) {
+//     Vector3 pos = p.getPosition();
+//     Vector3 dir = p.getMomentum();
+//     short int x = std::floor(pos.x / voxelSide);
+//     short int y = std::floor(pos.y / voxelSide);
+//     short int z = std::floor(pos.z / voxelSide);
+//
+//     float nextBoundaryX, nextBoundaryY, nextBoundaryZ;
+//
+//     // Distance along the ray to closest planes along itself
+//     if(dir.x != 0) {
+//         nextBoundaryX = (((dir.x > 0) ? (x+1) : x) * voxelSide - pos.x) / dir.x;
+//     } else {
+//         nextBoundaryX = sizeX * voxelSide + 1; // Effectively infinity
+//     }
+//
+//     if(dir.y != 0) {
+//         nextBoundaryY = (((dir.y > 0) ? (y+1) : y) * voxelSide - pos.y) / dir.y;
+//     } else {
+//         nextBoundaryY = sizeY * voxelSide + 1; // Effectively infinity
+//     }
+//
+//     if(dir.z != 0) {
+//         nextBoundaryZ = (((dir.z > 0) ? (z+1) : z) * voxelSide - pos.z) / dir.z;
+//     } else {
+//         nextBoundaryZ = sizeZ * voxelSide + 1; // Effectively infinity
+//     }
+//
+//     float closestDistAlong = std::min({
+//       nextBoundaryX, nextBoundaryY, nextBoundaryZ});
+//
+//     Vector3 point = pointAlongVec3(
+//       p.getPosition(), p.getMomentum(), closestDistAlong);
+//
+//     x = std::floor(point.x / voxelSide);
+//     y = std::floor(point.y / voxelSide);
+//     z = std::floor(point.z / voxelSide);
+//
+//     // Check if particle is out of bonds of the world
+//     if(x < 0 || x > sizeX - 1) {
+//         p.deactivate();
+//         return scene[0];
+//     }
+//     if(y < 0 || y > sizeY - 1) {
+//         p.deactivate();
+//         return scene[0];
+//     }
+//     if(z < 0 || z > sizeZ - 1) {
+//         p.deactivate();
+//         return scene[0];
+//     }
+//
+//     return voxelAt(x, y, z);  // Convert short int indices into
+//                               // float absolute positions
+// }
 
 Vector3 World::nextVoxelPosVec(Particle& p) {
     Vector3 pos = p.getPosition();
@@ -177,25 +197,36 @@ Vector3 World::nextVoxelPosVec(Particle& p) {
     // Check if particle is out of bonds of the world
     if(x < 0 || x > sizeX - 1) {
         p.deactivate();
-        return Vector3(0, 0, 0);
+        return Vector3(std::numeric_limits<float>::quiet_NaN(),
+                       std::numeric_limits<float>::quiet_NaN(),
+                       std::numeric_limits<float>::quiet_NaN());
     }
     if(y < 0 || y > sizeY - 1) {
         p.deactivate();
-        return Vector3(0, 0, 0);
+        return Vector3(std::numeric_limits<float>::quiet_NaN(),
+                       std::numeric_limits<float>::quiet_NaN(),
+                       std::numeric_limits<float>::quiet_NaN());
     }
     if(z < 0 || z > sizeZ - 1) {
         p.deactivate();
-        return Vector3(0, 0, 0);
+        return Vector3(std::numeric_limits<float>::quiet_NaN(),
+                       std::numeric_limits<float>::quiet_NaN(),
+                       std::numeric_limits<float>::quiet_NaN());
     }
 
-    return Vector3(x, y, z);  // Convert short int indices into
-                              // float absolute positions
+    // Convert integer voxel indices into world-space coordinates (voxel center)
+    return getVoxelCoordVec3(x, y, z);
 }
 
-void World::addParticlesEmitted(float time) {
-    for(auto* voxel : sources) {
-        auto particlesEmitted = voxel->getPartsEmittedList(time, dist, gen);
-        for(auto& p : particlesEmitted) voxel->moveToExit(p, voxelHalfSide);
+void World::addParticlesEmitted(float time, std::mt19937& localGen,
+  std::uniform_real_distribution<float>& localDist) {
+    // vEntPtr = voxelEntryPointer
+    for(auto* vEntPtr : sources) {
+        Vector3 voxelPosVec = getVoxelCoordVec3(vEntPtr->x, vEntPtr->y, vEntPtr->z);
+        auto particlesEmitted = vEntPtr->vPtr->getPartsEmittedList(
+          time, voxelPosVec, localDist, localGen);
+        for(auto& p : particlesEmitted) vEntPtr->vPtr->moveToExit(
+          p, voxelHalfSide, voxelPosVec);
         particles.insert(particles.end(), particlesEmitted.begin(),
           particlesEmitted.end());
     }
@@ -223,15 +254,58 @@ void World::cleanParticles(std::vector<Particle>& partList) {
 
 // Voxels in scene are individually numbered from 0, first along x-axis,
 // then in rows along y-axis, then in layers along z-axis
-int World::indexAt(short int x, short int y, short int z) const {
-    return x + sizeX * (y + z * sizeY);
+size_t World::indexAt(short int x, short int y, short int z) const {
+    return static_cast<size_t>(x + sizeX * (y + z * sizeY));
 }
 
-Voxel& World::voxelAt(short int x, short int y, short int z) {
-    assert(x < sizeX && x >= 0 &&
-        y < sizeY && y >= 0 &&
-        z < sizeZ && z >= 0);
-    return scene[indexAt(x, y, z)];
+VoxelEntry* World::voxelEntryAt(short int x, short int y, short int z) {
+    // Defensive: return nullptr for out-of-bounds instead of asserting here.
+    // Callers should check the return value and handle invalid positions.
+    if(!(x >= 0 && x < sizeX && y >= 0 && y < sizeY && z >= 0 && z < sizeZ)) {
+        return nullptr;
+    }
+    return &scene[indexAt(x, y, z)];
+}
+
+Voxel* World::voxelAt(short int x, short int y, short int z) {
+    // Use voxelEntryAt which already performs bounds checking and may return nullptr.
+    VoxelEntry* e = voxelEntryAt(x, y, z);
+    return e ? e->vPtr : nullptr;
+}
+
+VoxelEntry* World::voxelEntryAtPos(const Vector3& pos) {
+    // Defensive mapping from continuous position to voxel indices.
+    // Protect against NaN/Inf and out-of-bounds positions.
+    if(!std::isfinite(pos.x) || !std::isfinite(pos.y) || !std::isfinite(pos.z)) {
+        return nullptr;
+    }
+
+    // Use floor(pos / voxelSide) to map a world position to voxel index.
+    // This assumes the world origin (0,0,0) corresponds to the minimum corner
+    // of voxel (0,0,0). If your voxel centers are offset, adjust accordingly.
+    int ix = static_cast<int>(std::floor(pos.x / voxelSide));
+    int iy = static_cast<int>(std::floor(pos.y / voxelSide));
+    int iz = static_cast<int>(std::floor(pos.z / voxelSide));
+
+    if(ix < 0 || ix >= sizeX || iy < 0 || iy >= sizeY || iz < 0 || iz >= sizeZ) {
+        return nullptr;
+    }
+
+    return voxelEntryAt(static_cast<short int>(ix),
+                        static_cast<short int>(iy),
+                        static_cast<short int>(iz));
+}
+
+Voxel& World::voxelAtPos(const Vector3& pos) {
+    // Prefer callers to use voxelEntryAtPos and check for nullptr.
+    // Keep this helper but make it defensive: assert in debug, and fall back
+    // to the first voxel to avoid UB in release builds.
+    VoxelEntry* e = voxelEntryAtPos(pos);
+    if(!e) {
+        assert(false && "voxelAtPos called with invalid/out-of-bounds position");
+        return *scene[0].vPtr; // safe fallback (shouldn't be relied upon)
+    }
+    return *e->vPtr;
 }
 
 // void World::simulate(float time) {
@@ -244,14 +318,35 @@ Voxel& World::voxelAt(short int x, short int y, short int z) {
 // }
 
 void World::simulate(float time) {
-    addParticlesEmitted(time);
 
     if(particles.size() < 500 || !MULTITHREAD_ON) {
+        addParticlesEmitted(time, gen, dist);
+        // Single-threaded processing: collect newly created particles and
+        // record absorbed particles so behavior matches multithreaded path.
+        std::vector<Particle> singleThreadNewParticles;
         for(auto& p : particles) {
-            nextVoxel(p).processParticle(p, voxelHalfSide, dist, gen);
+                auto voxelPos = nextVoxelPosVec(p);
+                auto* vEntry = voxelEntryAtPos(voxelPos);
+                if(!vEntry) {
+                        // out-of-bounds or invalid position
+                        continue;
+                }
+                auto results = vEntry->vPtr->processParticle(
+                    p, voxelPos, voxelHalfSide, dist, gen);
+
+                if(!results.first.empty()) {
+                        singleThreadNewParticles.insert(singleThreadNewParticles.end(),
+                            results.first.begin(), results.first.end());
+                }
+                if(!results.second.empty()) {
+                        vEntry->addPartsAbsorbed(results.second);
+                }
         }
 
         cleanParticles(particles);
+        // Merge newly created particles after cleaning existing ones
+        particles.insert(particles.end(), singleThreadNewParticles.begin(),
+            singleThreadNewParticles.end());
     } else {
         std::vector<Particle> currentParticles;
 
@@ -273,6 +368,7 @@ void World::simulate(float time) {
             size_t endIdx = (i == N_THREADS - 1) ?
               currentParticles.size() : startIdx + particlesPerThread;
 
+            addParticlesEmitted(time, threadGens[i], threadDists[i]);
             threads.emplace_back(&World::processParticlesRange,
               this, i, startIdx, endIdx, std::ref(currentParticles),
               threadSeeds[i]);
@@ -289,24 +385,37 @@ void World::simulate(float time) {
     }
 }
 
-void World::setScene(std::vector<Voxel>& newScene, short int newX,
+void World::setScene(std::vector<Voxel*>& newScene, short int newX,
   short int newY, short int newZ) {
     if(newX != 0) sizeX = newX;
     if(newY != 0) sizeY = newY;
     if(newZ != 0) sizeZ = newZ;
 
-    scene = newScene;
-    // voxelMutexes.resize(scene.size());  // must have a mutex for each voxel
-    for(int i = 0; i<newScene.size(); i++) {
-        scene[i].setPosition(getVoxelCoordVec3(i));
+    scene = {};
+    for(size_t i = 0; i<newScene.size(); i++) {
+        scene.push_back(VoxelEntry{newScene[i], getVoxelPos(i)});
     }
+
     updateLists();
 }
 
-std::vector<Voxel*> World::getDetectors() {
+std::vector<VoxelEntry*> World::getDetectorEntries() {
     return detectors;
 }
 
-int World::getParticleCount() {
+int World::detectorCountAt(short int x, short int y, short int z) {
+    auto* detectorEntryPtr = voxelEntryAt(x, y, z);
+    assert(detectorEntryPtr->vPtr->getType() == DETECTOR);
+    return detectorEntryPtr->getNPartsAbsorbed();
+}
+
+std::vector<Particle> World::detectorPartListAt(short int x,
+  short int y, short int z) {
+    auto detectorEntryPtr = voxelEntryAt(x, y, z);
+    assert(detectorEntryPtr->vPtr->getType() == DETECTOR);
+    return detectorEntryPtr->getPartsAbsorbedCopy();
+}
+
+int World::getTotalParticles() const {
     return particles.size();
 }

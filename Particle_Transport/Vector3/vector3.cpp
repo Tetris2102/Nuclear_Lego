@@ -19,7 +19,10 @@ float Vector3::dot(const Vector3& v) const {
 }
 
 Vector3 Vector3::cross(const Vector3& v) const {
-    return Vector3(y * v.z - z * v.y, x * v.z - z * v.z, x * v.y - y * v.x);
+    // Correct cross product: (y*v.z - z*v.y, z*v.x - x*v.z, x*v.y - y*v.x)
+    return Vector3(y * v.z - z * v.y,
+                   z * v.x - x * v.z,
+                   x * v.y - y * v.x);
 }
 
 Vector3 Vector3::operator/(const Vector3& v) const {
@@ -28,6 +31,13 @@ Vector3 Vector3::operator/(const Vector3& v) const {
 
 void Vector3::normalize() {
     float magnitude = std::sqrt(x*x + y*y + z*z);
+    if(magnitude == 0.0f) {
+        // Avoid division by zero. Leave vector unchanged or set to a default unit
+        // vector. We choose to set to (1,0,0) to ensure downstream code sees
+        // a valid normalized vector instead of NaNs.
+        x = 1.0f; y = 0.0f; z = 0.0f;
+        return;
+    }
     x /= magnitude;
     y /= magnitude;
     z /= magnitude;
