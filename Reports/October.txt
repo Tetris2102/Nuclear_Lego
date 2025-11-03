@@ -1,0 +1,11 @@
+October progress report:
+    1. Functional single-threaded particle simulation code completed
+        (nuclear data entered only for air, need more data for final simulation)
+    2. Active work on implementing multithreading and optimization
+    3. Current maximum source activity for real-time simulation
+        is 200,000 decays/second (3x3x3 world with one source and 2 detectors)
+    4. Hardware structure developed
+    5. Ordered or obtained necessary components for breadboard prototype
+        (I2C multiplexers, raspberry pi 5, pin headers,
+        several ATtiny85 microcontrollers, passive buzzers)
+    6. Coded, assembled (breadboard) and successfully tested first cube prototype
