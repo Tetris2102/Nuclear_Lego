@@ -76,9 +76,9 @@ class Voxel {
           std::uniform_real_distribution<float>& dist, std::mt19937& gen);
 
         // For multithreading, output the same as from processParticle()
-        std::pair<std::vector<Particle>, std::vector<Particle>> processParticleThreadSafe(
-          Particle& p, const Vector3& voxelPosition, float voxelHalfSide,
-          std::uniform_real_distribution<float>& dist, std::mt19937& gen);
+        // std::pair<std::vector<Particle>, std::vector<Particle>> processParticleThreadSafe(
+        //   Particle& p, const Vector3& voxelPosition, float voxelHalfSide,
+        //   std::uniform_real_distribution<float>& dist, std::mt19937& gen);
 
         void moveToExit(Particle& p, float voxelHalfSide,
           const Vector3& voxelPos) const;
@@ -96,7 +96,7 @@ class Voxel {
           std::mt19937& gen);
         // Get mutex by reference
         std::mutex& getMtxRef();
-        
+
     // Instrumentation helpers (global across all voxels)
     struct VoxelStats {
       int passes;

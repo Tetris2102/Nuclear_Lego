@@ -9,6 +9,7 @@
 #include <algorithm>  // std::clamp is used (C++17)
 #include <utility>
 #include <functional>  // for std::ref()
+#include <iostream>
 
 // dir has to be normalized
 Vector3 pointAlongVec3(const Vector3& origin, const Vector3& dir, float t) {
@@ -19,39 +20,40 @@ Vector3 pointAlongVec3(const Vector3& origin, const Vector3& dir, float t) {
     return Vector3{x, y, z};
 }
 
-void World::processParticlesRange(int thrIdx, size_t startIdx, size_t endIdx,
-  std::vector<Particle>& currentParticles, uint32_t seed) {
-
-    std::mt19937 threadGen(seed);
-    std::uniform_real_distribution<float> threadDist(0, 1);
-
-    for(size_t i = startIdx; i<endIdx; i++) {
-        Particle& p = currentParticles[i];
-        if(!p.isActive()) continue;
-        auto vPos = nextVoxelPosVec(p);
-                auto* vEntryPtr = voxelEntryAtPos(vPos);
-
-                if(!vEntryPtr) {
-                        // Particle has left the world or produced NaN/Inf position; deactivate
-                        p.deactivate();
-                        continue;
-                }
-
-                auto results = vEntryPtr->vPtr->processParticleThreadSafe(p, vPos,
-                    voxelHalfSide, threadDist, threadGen);
-
-        if(!results.first.empty()) {
-            // append produced particles for this thread instead of overwriting
-            auto& out = threadsNewParticles[thrIdx];
-            out.insert(out.end(), results.first.begin(), results.first.end());
-        }
-        if(!results.second.empty()) {
-            vEntryPtr->addPartsAbsorbed(results.second);
-            // auto& out = threadPartAccumulator[i];
-            // out.insert(out.end(), results.second.begin(), results.first.end());
-        }
-    }
-}
+// void World::processParticlesRange(int thrIdx, float time, size_t startIdx, size_t endIdx,
+//   std::vector<Particle>& currentParticles) {
+//
+//     addParticlesEmitted(time, threadGens[thrIdx], threadDists[thrIdx]);
+//
+//     for(size_t i = startIdx; i<endIdx; i++) {
+//         Particle& p = currentParticles[i];
+//         if(!p.isActive()) continue;
+//         auto vPos = nextVoxelPosVec(p);
+//                 auto* vEntryPtr = voxelEntryAtPos(vPos);
+//
+//                 if(!vEntryPtr) {
+//                         // Particle has left the world or produced NaN/Inf position; deactivate
+//                         p.deactivate();
+//                         continue;
+//                 }
+//
+//                 auto results = vEntryPtr->vPtr->processParticle(p, vPos,
+//                     voxelHalfSide, threadDists[thrIdx], threadGens[thrIdx]);
+//
+//         if(!results.first.empty()) {
+//             // append produced particles for this thread instead of overwriting
+//             auto& out = threadsNewParticles[thrIdx];
+//             out.insert(out.end(), results.first.begin(), results.first.end());
+//         }
+//         if(!results.second.empty()) {
+//             // vEntryPtr->addPartsAbsorbed(results.second);
+//             // auto& out = threadPartAccumulator[i];
+//             // out.insert(out.end(), results.second.begin(), results.first.end());
+//             auto& out = threadPartsAbsorbed[thrIdx];
+//             out[indexAt(vEntryPtr->x, vEntryPtr->y, vEntryPtr->z)] = results.second;
+//         }
+//     }
+// }
 
 // For float, not short int position
 Vector3 World::getVoxelCoordVec3(int index) {
@@ -218,17 +220,39 @@ Vector3 World::nextVoxelPosVec(Particle& p) {
     return getVoxelCoordVec3(x, y, z);
 }
 
-void World::addParticlesEmitted(float time, std::mt19937& localGen,
-  std::uniform_real_distribution<float>& localDist) {
-    // vEntPtr = voxelEntryPointer
+void World::addParticlesEmitted(float time, std::mt19937& gen,
+  std::uniform_real_distribution<float>& dist) {
     for(auto* vEntPtr : sources) {
         Vector3 voxelPosVec = getVoxelCoordVec3(vEntPtr->x, vEntPtr->y, vEntPtr->z);
         auto particlesEmitted = vEntPtr->vPtr->getPartsEmittedList(
-          time, voxelPosVec, localDist, localGen);
+          time, voxelPosVec, dist, gen);
         for(auto& p : particlesEmitted) vEntPtr->vPtr->moveToExit(
           p, voxelHalfSide, voxelPosVec);
         particles.insert(particles.end(), particlesEmitted.begin(),
           particlesEmitted.end());
+    }
+}
+
+void World::addParticlesEmittedMultithread(float time) {
+    // vEntPtr = voxelEntryPointer
+    std::array<std::vector<Particle>, N_THREADS> localLists;
+
+    #pragma omp parallel for
+    for(auto* vEntPtr : sources) {
+        int thrIdx = omp_get_thread_num();
+        Vector3 voxelPosVec = getVoxelCoordVec3(vEntPtr->x, vEntPtr->y, vEntPtr->z);
+        auto particlesEmitted = vEntPtr->vPtr->getPartsEmittedList(
+          time, voxelPosVec, threadDists[thrIdx], threadGens[thrIdx]);
+        for(auto& p : particlesEmitted) vEntPtr->vPtr->moveToExit(
+          p, voxelHalfSide, voxelPosVec);
+        localLists[thrIdx] = particlesEmitted;
+    }
+
+    #pragma omp critical
+    {
+        for(auto& l : localLists) {
+            particles.insert(particles.end(), l.begin(), l.end());
+        }
     }
 }
 
@@ -327,19 +351,16 @@ void World::simulate(float time) {
         for(auto& p : particles) {
                 auto voxelPos = nextVoxelPosVec(p);
                 auto* vEntry = voxelEntryAtPos(voxelPos);
-                if(!vEntry) {
-                        // out-of-bounds or invalid position
-                        continue;
-                }
+                if(!vEntry) continue;
                 auto results = vEntry->vPtr->processParticle(
                     p, voxelPos, voxelHalfSide, dist, gen);
 
                 if(!results.first.empty()) {
-                        singleThreadNewParticles.insert(singleThreadNewParticles.end(),
-                            results.first.begin(), results.first.end());
+                    singleThreadNewParticles.insert(singleThreadNewParticles.end(),
+                        results.first.begin(), results.first.end());
                 }
                 if(!results.second.empty()) {
-                        vEntry->addPartsAbsorbed(results.second);
+                    vEntry->addPartsAbsorbed(results.second);
                 }
         }
 
@@ -348,39 +369,110 @@ void World::simulate(float time) {
         particles.insert(particles.end(), singleThreadNewParticles.begin(),
             singleThreadNewParticles.end());
     } else {
-        std::vector<Particle> currentParticles;
+        // std::vector<Particle> currentParticles;
 
-        const size_t particlesPerThread = particles.size() / N_THREADS;
-        std::vector<std::thread> threads;
+        // const size_t particlesPerThread = particles.size() / N_THREADS;
+        // std::vector<std::thread> threads;
 
         // Avoid race condition because of reading
         // and modifying the same vector
-        currentParticles = std::move(particles);
+        // currentParticles = std::move(particles);
 
-        std::array<uint32_t, N_THREADS> seeds;
+        // std::array<uint32_t, N_THREADS> seeds;
 
-        for(int i = 0; i<threadsNewParticles.size(); i++) {
-            threadsNewParticles[i] = {};
-        }
+        // for(int i = 0; i<threadsNewParticles.size(); i++) {
+        //     threadsNewParticles[i] = {};
+        // }
 
-        for(size_t i = 0; i<N_THREADS; i++) {
-            size_t startIdx = i * particlesPerThread;
-            size_t endIdx = (i == N_THREADS - 1) ?
-              currentParticles.size() : startIdx + particlesPerThread;
+        // for(size_t i = 0; i<N_THREADS; i++) {
+        //     size_t startIdx = i * particlesPerThread;
+        //     size_t endIdx = (i == N_THREADS - 1) ?
+        //       currentParticles.size() : startIdx + particlesPerThread;
+        //
+        //     threads.emplace_back(&World::processParticlesRange,
+        //       this, i, time, startIdx, endIdx, std::ref(currentParticles));
+        // }
 
-            addParticlesEmitted(time, threadGens[i], threadDists[i]);
-            threads.emplace_back(&World::processParticlesRange,
-              this, i, startIdx, endIdx, std::ref(currentParticles),
-              threadSeeds[i]);
-        }
+        // for(auto& t : threads) t.join();
 
-        for(auto& t : threads) t.join();
+        // cleanParticles(currentParticles);
+        // particles = std::move(currentParticles);
+        // for(const auto& pList : threadsNewParticles) {
+        //     particles.insert(particles.end(),
+        //       pList.begin(), pList.end());
+        // }
+        // for(const auto& pAbsorbed : threadPartsAbsorbed) {
+        //
+        // }
+        // for(int i = 0; i<N_THREADS; i++) {
+        //     // Combine all particles created from all threads
+        //     auto& pCreated = threadsNewParticles[i];
+        //     particles.insert(particles.end(),
+        //       pCreated.begin(), pCreated.end());
+        //
+        //     // Combine all particles absorbed from all threads
+        //     auto& pAbsorbed = threadPartsAbsorbed[i];
+        //     for(const auto& voxelData : pAbsorbed) {
+        //         int index = voxelData.first;
+        //         scene[index].addPartsAbsorbed(voxelData.second);
+        //     }
+        // }
 
-        cleanParticles(currentParticles);
-        particles = std::move(currentParticles);
-        for(const auto& pList : threadsNewParticles) {
-            particles.insert(particles.end(),
-              pList.begin(), pList.end());
+        addParticlesEmittedMultithread(time);
+
+        #pragma omp parallel
+        {
+            std::cout << "Threads at 1: " << omp_get_num_threads() << std::endl;
+            std::vector<Particle> localPartsEmitted;
+
+            bool a = false;
+
+            #pragma omp parallel for schedule(dynamic)
+            for(Particle& p : particles) {
+
+                if(!a) {
+                    std::cout << "Threads at 2: " << omp_get_num_threads() << std::endl;
+                    a = true;
+                }
+
+                if(!p.isActive()) continue;
+                auto vPos = nextVoxelPosVec(p);
+                auto* vEntryPtr = voxelEntryAtPos(vPos);
+
+                if(!vEntryPtr) {
+                    // Particle has left the world or produced NaN/Inf position; deactivate
+                    p.deactivate();
+                    continue;
+                }
+
+                auto results = vEntryPtr->vPtr->processParticle(p, vPos,
+                    voxelHalfSide, threadDists[omp_get_thread_num()],
+                    threadGens[omp_get_thread_num()]);
+
+                // if(!results.first.empty()) {
+                //     // append produced particles
+                //     // particles.insert(particles.end(),
+                //     //   results.first.begin(), results.first.end());
+                //     localPartsEmitted.insert(localPartsEmitted.end(),
+                //       results.first.begin(), results.first.end());
+                // }
+                localPartsEmitted.insert(localPartsEmitted.end(),
+                  results.first.begin(), results.first.end());
+                // if(!results.second.empty()) {
+                //     // append absorbed particles
+                //     vEntryPtr->addPartsAbsorbed(results.second);
+                //     // auto& out = threadPartAccumulator[i];
+                //     // out.insert(out.end(), results.second.begin(), results.first.end());
+                // }
+                vEntryPtr->addPartsAbsorbed(results.second);
+            }
+
+            #pragma omp critical
+            {
+                std::cout << "Threads at 1: " << omp_get_num_threads() << std::endl;
+                particles.insert(particles.end(),
+                  localPartsEmitted.begin(), localPartsEmitted.end());
+            }
         }
     }
 }

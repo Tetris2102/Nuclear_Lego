@@ -21,7 +21,7 @@ int main(int argc, char const *argv[]) {
     Voxel air_obj(MATTER, airMat);
     Voxel* air = &air_obj;
 
-    IsotopeSample betaSample("betaSample", BETA, 1.0, 10000);
+    IsotopeSample betaSample("betaSample", BETA, 1.0, 1000000);
     Voxel sourceInAir_obj(SOURCE, airMat, betaSample);
     Voxel* sourceInAir = &sourceInAir_obj;
 
@@ -33,9 +33,9 @@ int main(int argc, char const *argv[]) {
     unsigned int seed = 42;
     World world(x, y, z, 4.0, seed);
     std::vector<Voxel*> scene = {
-        sourceInAir, detector,  air,   detector,  air,    air, air, air, air,
-         detector,     air,   detector,  air,   detector, air, air, air, air,
-           air,        air,     air,     air,     air,    air, air, air, air
+        sourceInAir, detector,  air,   air,  air,   air,   air,   air,   air,
+         detector,     air,     air,   air,  air,   air,   air,   air,   air,
+           air,        air,     air,   air,  air,   air,   air,   air,   air
     };
     world.setScene(scene);
 
@@ -43,8 +43,8 @@ int main(int argc, char const *argv[]) {
   Voxel::resetGlobalStats();
 
     auto start = std::chrono::high_resolution_clock::now();
-    for(int i = 0; i<1; i++) {
-        world.simulate(10.0);
+    for(int i = 0; i<10; i++) {
+        world.simulate(0.1);
     }
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -58,7 +58,7 @@ int main(int argc, char const *argv[]) {
   }
 
     int partsD1 = world.detectorCountAt(1, 0, 0);
-    int partsD2 = world.detectorCountAt(0, 1, 0);
+    int partsD2 = world.detectorCountAt(0, 0, 1);
 
     std::cout << "Simulated for 10.0 s" << std::endl;
     std::cout << "Results:" << std::endl;

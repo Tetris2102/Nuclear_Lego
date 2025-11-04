@@ -8,17 +8,17 @@
 #include "../config.h"
 #include <vector>
 #include <array>
-#include <thread>
-#include <mutex>
-#include <memory>
+#include <omp.h>
+// #include <mutex>
+// #include <memory>
 #include <random>
 #include <utility>  // for std::pair
+// #include <unordered_map>
 
-struct VoxelEntry {
-    private:
-        std::vector<Particle> partsAbsorbed;
-    public:
+struct alignas(64) VoxelEntry {
         Voxel* vPtr;
+        // Should be modified only when joining particles from threads
+        std::vector<Particle> partsAbsorbed;
         short int x, y, z;
 
         VoxelEntry(Voxel* _vPtr, short int _x,
@@ -31,7 +31,7 @@ struct VoxelEntry {
         }
 
         void addPartsAbsorbed(const std::vector<Particle>& _partsAbsorbed) {
-            std::lock_guard<std::mutex> lock(vPtr->getMtxRef());
+            // std::lock_guard<std::mutex> lock(vPtr->getMtxRef());
             partsAbsorbed.insert(partsAbsorbed.begin(),
               _partsAbsorbed.begin(), _partsAbsorbed.end());
         }
@@ -78,24 +78,26 @@ class World {
         // std::vector<std::mutex> voxelMutexes;
 
         // For multithreading
-        std::array<uint32_t, N_THREADS> threadSeeds;
         std::array<std::mt19937, N_THREADS> threadGens;
         std::array<std::uniform_real_distribution<float>, N_THREADS> threadDists;
-        // std::array<std::vector<Particle>, N_THREADS> threadPartAccumulator;
-
-        // std::vector<std::array<VoxelEntry
+        // // std::array<std::vector<Particle>, N_THREADS> threadPartAccumulator;
+        //
+        // // Store absorbed particles for each thread
+        // // and voxel, then merge into scene
+        // std::array<std::unordered_map<int, std::vector<Particle>>,
+        //   N_THREADS> threadPartsAbsorbed;
 
         // For single thread
         std::mt19937 gen;
         // Distribution should be in (0, 1) range
         std::uniform_real_distribution<float> dist;
 
-        // Stores particles created in each
-        // thread after running processParticlesRange()
-        std::array<std::vector<Particle>, N_THREADS> threadsNewParticles;
+        // // Stores particles created in each
+        // // thread after running processParticlesRange()
+        // std::array<std::vector<Particle>, N_THREADS> threadsNewParticles;
 
-        void processParticlesRange(int thrIdx, size_t startIdx, size_t endIdx,
-          std::vector<Particle>& currentParticles, uint32_t seed);
+        // void processParticlesRange(int thrIdx, float time, size_t startIdx, size_t endIdx,
+        //   std::vector<Particle>& currentParticles);
         Vector3 getVoxelCoordVec3(int index);
         Vector3 getVoxelCoordVec3(short int x, short int y, short int z);
         std::array<short int, 3> getVoxelPos(int index);
@@ -103,8 +105,9 @@ class World {
         // Get the next voxel a particle will pass
         std::array<short int, 3> nextVoxelPos(Particle& p);
         Vector3 nextVoxelPosVec(Particle& p);
-        void addParticlesEmitted(float time, std::mt19937& localGen,
-          std::uniform_real_distribution<float>& localDist);
+        void addParticlesEmitted(float time, std::mt19937& gen,
+          std::uniform_real_distribution<float>& dist);
+        void addParticlesEmittedMultithread(float time);
         // Erase deactivated or escaped particles
         void cleanParticles(std::vector<Particle>& partList);
         Vector3 getVoxelPos(const Voxel& v);
@@ -118,10 +121,11 @@ class World {
             voxelSide = _voxelSide;
             voxelHalfSide = _voxelSide / 2;
 
+            omp_set_num_threads(N_THREADS);
+
             // Set RNG seeds for each thread
             for(size_t i = 0; i<N_THREADS; i++) {
-                threadSeeds[i] = gen();
-                threadGens[i] = std::mt19937(threadSeeds[i]);
+                threadGens[i] = std::mt19937(gen());
                 threadDists[i] = std::uniform_real_distribution<float>(0, 1);
             }
         }

@@ -11,10 +11,11 @@
 #define PIN_LVL_OUT 1
 #define PIN_LVL_IN 4
 
-uint8_t voxelType;           // at EEPROM 0
-uint8_t materialType;     // at EEPROM 1
-uint16_t activity;             // at EEPROM 2 and 3
-uint8_t sampleType;  // at EEPROM 4
+// Corresponding enums are stored in main code (enums.h)
+uint8_t voxelType;     // at EEPROM 0
+uint8_t materialType;  // at EEPROM 1
+uint16_t activity;     // no need to store
+uint8_t sampleType;    // at EEPROM 2
 
 uint8_t level;
 
@@ -33,7 +34,7 @@ void setup() {
 
     updateParams();
 
-    TinyWireS.begin(8);  // Use level as I2C address beginning from 8
+    TinyWireS.begin(8 + level);  // Use level as I2C address beginning from 8
     // Safe I2C addresses (not reserved): 8-119
 
     TinyWireS.onRequest(reportOnRequest);
@@ -56,34 +57,38 @@ void loop() {
 }
 
 void updateParams() {
+    // Get parameters from EEPROM on startup
+    voxelType = EEPROM.get(0);
+    materialType = EEPROM.get(1);
+    sampleType = EEPROM.get(2);
+
+    // Read voxel's level
+    // NEED TO CHANGE ACCORDING TO RESISTOR LADDER
     uint16_t lvl_in = analogRead(PIN_LVL_IN);
     level = map(lvl_in, 0, 1023, 0, MAX_LEVEL);
-
-    uint8_t lvl_out = map(level + 1, 0, MAX_LEVEL, 0, 255);
-    analogWrite(PIN_LVL_OUT, lvl_out);
 }
 
 void reportOnRequest() {
-    TinyWireS.write(static_cast<uint8_t>(voxelType));
-    TinyWireS.write(static_cast<uint8_t>(materialType));
-    TinyWireS.write(static_cast<uint8_t>(activity & 0xFF));  // Least significant byte first
-    TinyWireS.write(static_cast<uint8_t>(activity >> 8));    // Most significant byte
-    TinyWireS.write(static_cast<uint8_t>(sampleType));
+    TinyWireS.write(voxelType);
+    TinyWireS.write(materialType);
+    TinyWireS.write(activity & 0xFF);  // Least significant byte first
+    TinyWireS.write(activity >> 8);    // Most significant byte
+    TinyWireS.write(sampleType);
     TinyWireS.write(level);
 }
 
 void receiveAndStore(uint8_t numBytes) {
     if(numBytes == 5) {
-        voxelType = static_cast<uint8_t>(TinyWireS.read());
-        materialType = static_cast<uint8_t>(TinyWireS.read());
+        voxelType = TinyWireS.read();
+        materialType = TinyWireS.read();
         activity = TinyWireS.read() | (TinyWireS.read() << 8);
-        sampleType = static_cast<uint8_t>(TinyWireS.read());
+        sampleType = TinyWireS.read();
 
         EEPROM.update(0, voxelType);
         EEPROM.update(1, materialType);
-        EEPROM.update(2, activity & 0xFF);
-        EEPROM.update(3, activity >> 8);
-        EEPROM.update(4, sampleType);
+        // EEPROM.update(2, activity & 0xFF);
+        // EEPROM.update(3, activity >> 8);
+        EEPROM.update(2, sampleType);
     }
 }
 

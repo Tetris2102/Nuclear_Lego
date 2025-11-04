@@ -142,12 +142,12 @@ std::pair<std::vector<Particle>, std::vector<Particle>> Voxel::processParticle(
     return std::pair(particlesCreated, particlesAbsorbed);
 }
 
-std::pair<std::vector<Particle>, std::vector<Particle>> Voxel::processParticleThreadSafe(Particle& p,
-  const Vector3& voxelPos, float voxelHalfSide,
-  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
-    std::lock_guard<std::mutex> lock(voxelMutex);
-    return processParticle(p, voxelPos, voxelHalfSide, dist, gen);
-}
+// std::pair<std::vector<Particle>, std::vector<Particle>> Voxel::processParticleThreadSafe(Particle& p,
+//   const Vector3& voxelPos, float voxelHalfSide,
+//   std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
+//     std::lock_guard<std::mutex> lock(voxelMutex);
+//     return processParticle(p, voxelPos, voxelHalfSide, dist, gen);
+// }
 
 void Voxel::moveToExit(Particle& p, float voxelHalfSide,
   const Vector3& voxelPos) const {
