@@ -14,14 +14,14 @@
 // TODO: make Voxel::processParticle() accept pointers to RNG objects
 // instead of having RNG instances for every object
 
-int main(int argc, char const *argv[]) {
+int main() {
 
     Material airMat = getAir();
 
     Voxel air_obj(MATTER, airMat);
     Voxel* air = &air_obj;
 
-    IsotopeSample betaSample("betaSample", BETA, 1.0, 200000);
+    IsotopeSample betaSample("betaSample", BETA, 1.0, 300000);
     Voxel sourceInAir_obj(SOURCE, airMat, betaSample);
     Voxel* sourceInAir = &sourceInAir_obj;
 
@@ -43,8 +43,8 @@ int main(int argc, char const *argv[]) {
   Voxel::resetGlobalStats();
 
     auto start = std::chrono::high_resolution_clock::now();
-    for(int i = 0; i<10; i++) {
-        world.simulate(0.1);
+    for(int i = 0; i<20; i++) {
+        world.simulate(0.05);
     }
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -60,7 +60,7 @@ int main(int argc, char const *argv[]) {
     int partsD1 = world.detectorCountAt(1, 0, 0);
     int partsD2 = world.detectorCountAt(0, 0, 1);
 
-    std::cout << "Simulated for 10.0 s" << std::endl;
+    std::cout << "Simulated for 1.0 s" << std::endl;
     std::cout << "Results:" << std::endl;
     std::cout << "Detector 1 (closer):" << std::endl;
     std::cout << "    " << partsD1 << " particles detected" << std::endl;

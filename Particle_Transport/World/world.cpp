@@ -355,19 +355,24 @@ void World::simulate(float time) {
         // record absorbed particles so behavior matches multithreaded path.
         std::vector<Particle> singleThreadNewParticles;
         for(auto& p : particles) {
-                auto voxelPos = nextVoxelPosVec(p);
-                auto* vEntry = voxelEntryAtPos(voxelPos);
-                if(!vEntry) continue;
-                auto results = vEntry->vPtr->processParticle(
-                    p, voxelPos, voxelHalfSide, dist, gen);
+            if(!p.isActive()) continue;
+            
+            auto voxelPos = nextVoxelPosVec(p);
+            auto* vEntry = voxelEntryAtPos(voxelPos);
+            if(!vEntry) {
+                p.deactivate();
+                continue;
+            }
+            auto results = vEntry->vPtr->processParticle(
+                p, voxelPos, voxelHalfSide, dist, gen);
 
-                if(!results.first.empty()) {
-                    singleThreadNewParticles.insert(singleThreadNewParticles.end(),
-                        results.first.begin(), results.first.end());
-                }
-                if(!results.second.empty()) {
-                    vEntry->addPartsAbsorbed(results.second);
-                }
+            if(!results.first.empty()) {
+                singleThreadNewParticles.insert(singleThreadNewParticles.end(),
+                    results.first.begin(), results.first.end());
+            }
+            if(!results.second.empty()) {
+                vEntry->addPartsAbsorbed(results.second);
+            }
         }
 
         cleanParticles(particles);

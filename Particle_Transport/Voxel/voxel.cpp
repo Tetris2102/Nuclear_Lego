@@ -90,7 +90,7 @@ std::pair<std::vector<Particle>, std::vector<Particle>> Voxel::processParticle(
         // Same as moveToExit(p);
         p.moveToPointAlong(tmax);  // Particle just passes through
         ::g_passes.fetch_add(1, std::memory_order_relaxed);
-        return {};
+        return {{}, {}};
     }
 
     // Choose record to use (including EventType, cross-section, etc.)
