@@ -237,15 +237,21 @@ void World::addParticlesEmittedMultithread(float time) {
     // vEntPtr = voxelEntryPointer
     std::array<std::vector<Particle>, N_THREADS> localLists;
 
-    #pragma omp parallel for
-    for(auto* vEntPtr : sources) {
+    #pragma omp parallel for schedule(dynamic)
+    for(size_t i = 0; i<sources.size(); i++) {
+        auto* vEntPtr = sources[i];
         int thrIdx = omp_get_thread_num();
         Vector3 voxelPosVec = getVoxelCoordVec3(vEntPtr->x, vEntPtr->y, vEntPtr->z);
         auto particlesEmitted = vEntPtr->vPtr->getPartsEmittedList(
           time, voxelPosVec, threadDists[thrIdx], threadGens[thrIdx]);
         for(auto& p : particlesEmitted) vEntPtr->vPtr->moveToExit(
           p, voxelHalfSide, voxelPosVec);
-        localLists[thrIdx] = particlesEmitted;
+        auto& insertIn = localLists[thrIdx];
+        insertIn.insert(
+            insertIn.end(),
+            particlesEmitted.begin(),
+            particlesEmitted.end()
+        );
     }
 
     #pragma omp critical
@@ -420,60 +426,79 @@ void World::simulate(float time) {
 
         addParticlesEmittedMultithread(time);
 
-        #pragma omp parallel
-        {
-            std::cout << "Threads at 1: " << omp_get_num_threads() << std::endl;
-            std::vector<Particle> localPartsEmitted;
+        // std::cout << "Threads at 1: " << omp_get_num_threads() << std::endl;
 
-            bool a = false;
+        // bool a = false;
 
-            #pragma omp parallel for schedule(dynamic)
-            for(Particle& p : particles) {
 
-                if(!a) {
-                    std::cout << "Threads at 2: " << omp_get_num_threads() << std::endl;
-                    a = true;
-                }
+        std::array<std::vector<Particle>, N_THREADS> localPartsEmitted;
+        std::array<std::unordered_map<VoxelEntry*, std::vector<Particle>>, N_THREADS> localPartsAbsorbedMap;
 
-                if(!p.isActive()) continue;
-                auto vPos = nextVoxelPosVec(p);
-                auto* vEntryPtr = voxelEntryAtPos(vPos);
+        #pragma omp parallel for schedule(dynamic)
+        for(size_t i = 0; i<particles.size(); i++) {
 
-                if(!vEntryPtr) {
-                    // Particle has left the world or produced NaN/Inf position; deactivate
-                    p.deactivate();
-                    continue;
-                }
+            int thrIdx = omp_get_thread_num();
+            auto& p = particles[i];
 
-                auto results = vEntryPtr->vPtr->processParticle(p, vPos,
-                    voxelHalfSide, threadDists[omp_get_thread_num()],
-                    threadGens[omp_get_thread_num()]);
+            // if(!a) {
+            //     std::cout << "Threads at 2: " << omp_get_num_threads() << std::endl;
+            //     a = true;
+            // }
 
-                // if(!results.first.empty()) {
-                //     // append produced particles
-                //     // particles.insert(particles.end(),
-                //     //   results.first.begin(), results.first.end());
-                //     localPartsEmitted.insert(localPartsEmitted.end(),
-                //       results.first.begin(), results.first.end());
-                // }
-                localPartsEmitted.insert(localPartsEmitted.end(),
-                  results.first.begin(), results.first.end());
-                // if(!results.second.empty()) {
-                //     // append absorbed particles
-                //     vEntryPtr->addPartsAbsorbed(results.second);
-                //     // auto& out = threadPartAccumulator[i];
-                //     // out.insert(out.end(), results.second.begin(), results.first.end());
-                // }
-                vEntryPtr->addPartsAbsorbed(results.second);
+            if(!p.isActive()) continue;
+            auto vPos = nextVoxelPosVec(p);
+            auto* vEntryPtr = voxelEntryAtPos(vPos);
+
+            if(!vEntryPtr) {
+                // Particle has left the world or produced NaN/Inf position; deactivate
+                p.deactivate();
+                continue;
             }
 
-            #pragma omp critical
-            {
-                std::cout << "Threads at 1: " << omp_get_num_threads() << std::endl;
-                particles.insert(particles.end(),
-                  localPartsEmitted.begin(), localPartsEmitted.end());
+            auto results = vEntryPtr->vPtr->processParticle(p, vPos,
+                voxelHalfSide, threadDists[thrIdx], threadGens[thrIdx]);
+
+            // if(!results.first.empty()) {
+            //     // append produced particles
+            //     // particles.insert(particles.end(),
+            //     //   results.first.begin(), results.first.end());
+            //     localPartsEmitted.insert(localPartsEmitted.end(),
+            //       results.first.begin(), results.first.end());
+            // }
+            if(!results.first.empty()) {
+                localPartsEmitted[thrIdx].insert(localPartsEmitted[thrIdx].end(),
+                    results.first.begin(), results.first.end());
+            }
+            // if(!results.second.empty()) {
+            //     // append absorbed particles
+            //     vEntryPtr->addPartsAbsorbed(results.second);
+            //     // auto& out = threadPartAccumulator[i];
+            //     // out.insert(out.end(), results.second.begin(), results.first.end());
+            // }
+            // vEntryPtr->addPartsAbsorbed(results.second);
+            if(!results.second.empty()) {
+                auto& insertIn = localPartsAbsorbedMap[thrIdx][vEntryPtr];
+                // std::lock_guard<std::mutex> lock(insertIn.getMtxRef());
+                insertIn.insert(insertIn.end(), results.second.begin(), results.second.end());
             }
         }
+
+
+        cleanParticles(particles);
+        // std::cout << "Threads at 1: " << omp_get_num_threads() << std::endl;
+        for(int i = 0; i<N_THREADS; i++) {
+            particles.insert(
+                particles.end(),
+                localPartsEmitted[i].begin(),
+                localPartsEmitted[i].end()
+            );
+
+            for(const auto& absorbedMap : localPartsAbsorbedMap[i]) {
+                absorbedMap.first->addPartsAbsorbed(absorbedMap.second);
+            }
+        }
+        // particles.insert(particles.end(),
+        //     localPartsEmitted.begin(), localPartsEmitted.end());
     }
 }
 

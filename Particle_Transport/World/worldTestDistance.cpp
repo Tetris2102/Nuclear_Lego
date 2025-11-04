@@ -21,7 +21,7 @@ int main(int argc, char const *argv[]) {
     Voxel air_obj(MATTER, airMat);
     Voxel* air = &air_obj;
 
-    IsotopeSample betaSample("betaSample", BETA, 1.0, 1000000);
+    IsotopeSample betaSample("betaSample", BETA, 1.0, 200000);
     Voxel sourceInAir_obj(SOURCE, airMat, betaSample);
     Voxel* sourceInAir = &sourceInAir_obj;
 
