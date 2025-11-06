@@ -1,25 +1,26 @@
 #include <TinyWireS.h>
 #include <EEPROM.h>
-#include "enums.h"
 
-#define MAX_HEIGHT 2  // Maximum height MINUS 1, so indexing begins from 0
+#define MAX_LEVEL 2  // Maximum height MINUS 1, so indexing begins from 0
 
 // SDA at PB0
 // SCL at PB2
-#define PIN_PRES_IN 1  // Upper presence pin
 #define PIN_BUZZ 3     // Buzzer pin
 // Have to connect RC network to PIN_LVL_OUT
 // to smooth PWM (C=4.7uF, R=1.0kOhm)
-#define PIN_LVL_OUT 4
-#define PIN_LVL_IN 5  // Have to connect pull-down resistor (e.g. 10 kOhm)
+#define PIN_LVL_OUT 1
+#define PIN_LVL_IN 4
 
-VoxelType voxelType;           // at EEPROM 0
-MaterialType materialType;     // at EEPROM 1
-uint16_t activity;       // at EEPROM 2 and 3
-IsotopeSampleType sampleType;  // at EEPROM 4
+// Corresponding enums are stored in main code (enums.h)
+uint8_t voxelType;           // at EEPROM 0
+uint8_t materialType;        // at EEPROM 1
+uint16_t activity;           // no need to store
+uint8_t sampleType;          // at EEPROM 2
+uint8_t particlesDetectable  // at EEPROM 3
+// particlesDetectable represents [NEUTRON, GAMMA, BETA, ALPHA]
+// (encoded into the 4 least significant bits)
 
 uint8_t level;
-bool hasCubeAbove;
 
 void updateParams();
 void reportOnRequest();
@@ -28,7 +29,6 @@ uint16_t msBetweenDecays(uint16_t activity);
 void beepBuzzer();
 
 void setup() {
-    pinMode(PIN_PRES_IN, INPUT);
     pinMode(PIN_BUZZ, OUTPUT);
     pinMode(PIN_LVL_OUT, OUTPUT);
     pinMode(PIN_LVL_IN, INPUT);
@@ -37,7 +37,7 @@ void setup() {
 
     updateParams();
 
-    TinyWireS.begin(level + 8);  // Use level as I2C address beginning from 8
+    TinyWireS.begin(8 + level);  // Use level as I2C address beginning from 8
     // Safe I2C addresses (not reserved): 8-119
 
     TinyWireS.onRequest(reportOnRequest);
@@ -60,47 +60,52 @@ void loop() {
 }
 
 void updateParams() {
-    uint16_t lvl_in = analogRead(PIN_LVL_IN);
-    level = map(lvl_in, 0, 1023, 0, MAX_HEIGHT);
+    // Get parameters from EEPROM on startup
+    voxelType = EEPROM.get(0);
+    materialType = EEPROM.get(1);
+    sampleType = EEPROM.get(2);
+    particlesDetectable = EEPROM.get(3);
 
-    if(level != MAX_HEIGHT) {
-        uint8_t lvl_out = map(level + 1, 0, MAX_HEIGHT, 0, 255);
-        analogWrite(PIN_LVL_OUT, lvl_out);
+    // Determine voxel's level
+    uint16_t v_in = analogRead(PIN_LVL_IN);
+    if(v_in > 299) {         // threshold at 577 mV
+        level = 0;
+    } else if(v_in > 118) {  // threshold at 1.462 V
+        level = 1;
     } else {
-        digitalWrite(PIN_LVL_OUT, HIGH);
+        level = 2;
     }
-
-    hasCubeAbove = digitalRead(PIN_PRES_IN);
 }
 
 void reportOnRequest() {
-    TinyWireS.write(static_cast<uint8_t>(voxelType));
-    TinyWireS.write(static_cast<uint8_t>(materialType));
-    TinyWireS.write(static_cast<uint8_t>(activity));
-    TinyWireS.write(static_cast<uint8_t>(sampleType));
+    TinyWireS.write(voxelType);
+    TinyWireS.write(materialType);
+    TinyWireS.write(activity & 0xFF);  // Least significant byte first
+    TinyWireS.write(activity >> 8);    // Most significant byte then
+    TinyWireS.write(sampleType);
+    TinyWireS.write(particlesDetectable);
     TinyWireS.write(level);
-    TinyWireS.write(hasCubeAbove);
 }
 
 void receiveAndStore(uint8_t numBytes) {
-    if(numBytes == 6) {
-        voxelType = static_cast<VoxelType>(TinyWireS.read());
-        materialType = static_cast<MaterialType>(TinyWireS.read());
+    if(numBytes == 5) {
+        voxelType = TinyWireS.read();
+        materialType = TinyWireS.read();
         activity = TinyWireS.read() | (TinyWireS.read() << 8);
-        sampleType = static_cast<IsotopeSampleType>(TinyWireS.read());
+        sampleType = TinyWireS.read();
+        particlesDetectable = TinyWireS.read();
 
         EEPROM.update(0, voxelType);
         EEPROM.update(1, materialType);
-        EEPROM.update(2, activity & 0xFF);
-        EEPROM.update(3, activity >> 8);
-        EEPROM.update(4, sampleType);
+        EEPROM.update(2, sampleType);
+        EEPROM.update(3, particlesDetectable);
     }
 }
 
 uint16_t msBetweenDecays(uint16_t activity) {
-    if(activity > 2000) activity = 2000;
-    if(activity == 0) activity = 1;  // Handle background radiation
-                                     // in case activity is small
+    if(activity > 500) activity = 500;  // 500 decays/second max
+    // Handle background radiation in case activity is small
+    if(activity == 0) activity = 1;
 
     // Poisson time scaling with random number generator
     uint16_t r = random(1, 65535);

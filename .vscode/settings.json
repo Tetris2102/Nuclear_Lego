@@ -51,6 +51,10 @@
         "type_traits": "cpp",
         "utility": "cpp",
         "format": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "deque": "cpp",
+        "*.tcc": "cpp",
+        "functional": "cpp",
+        "random": "cpp"
     }
 }
