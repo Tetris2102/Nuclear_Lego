@@ -13,12 +13,14 @@
 // #include <memory>
 #include <random>
 #include <utility>  // for std::pair
+#include <atomic>
 // #include <unordered_map>
 
 struct alignas(64) VoxelEntry {
         Voxel* vPtr;
         // Should be modified only when joining particles from threads
         std::vector<Particle> partsAbsorbed;
+        std::atomic<int> nPartsAbsorbed;
         short int x, y, z;
 
         VoxelEntry(Voxel* _vPtr, short int _x,
@@ -28,6 +30,7 @@ struct alignas(64) VoxelEntry {
             y = _y;
             z = _z;
             partsAbsorbed = _pAbsorbed;
+            nPartsAbsorbed.store(0, std::memory_order_relaxed);
         }
 
         void addPartsAbsorbed(const std::vector<Particle>& _partsAbsorbed) {
@@ -36,8 +39,20 @@ struct alignas(64) VoxelEntry {
               _partsAbsorbed.begin(), _partsAbsorbed.end());
         }
 
+        void incrementPartsAbsorbed(int count) {
+            nPartsAbsorbed.fetch_add(count, std::memory_order_relaxed);
+        }
+
+        void resetNPartsAbsorbed() {
+            nPartsAbsorbed.store(0, std::memory_order_relaxed);
+        }
+
         size_t getNPartsAbsorbed() {
-            return partsAbsorbed.size();
+            if(COLLECT_ABSORBED_PARTICLES) {
+              return partsAbsorbed.size();
+            } else {
+              return nPartsAbsorbed.load(std::memory_order_relaxed);
+            }
         }
 
         std::vector<Particle> getPartsAbsorbedCopy() {
@@ -51,7 +66,21 @@ struct alignas(64) VoxelEntry {
             y = _xyz[1];
             z = _xyz[2];
             partsAbsorbed = _pAbsorbed;
+            nPartsAbsorbed.store(0, std::memory_order_relaxed);
         }
+
+        // Explicitly define move constructor since std::atomic is not movable
+        VoxelEntry(VoxelEntry&& other) noexcept :
+            vPtr(other.vPtr),
+            partsAbsorbed(std::move(other.partsAbsorbed)),
+            nPartsAbsorbed(other.nPartsAbsorbed.load(std::memory_order_relaxed)),
+            x(other.x), y(other.y), z(other.z) {
+        }
+
+        // Delete copy constructor and assignment (atomic can't be copied)
+        VoxelEntry(const VoxelEntry& other) = delete;
+        VoxelEntry& operator=(const VoxelEntry& other) = delete;
+        VoxelEntry& operator=(VoxelEntry&&) = delete;
 };
 
 class World {
@@ -81,20 +110,11 @@ class World {
         std::array<std::mt19937, N_THREADS> threadGens;
         std::array<std::uniform_real_distribution<float>, N_THREADS> threadDists;
         // // std::array<std::vector<Particle>, N_THREADS> threadPartAccumulator;
-        //
-        // // Store absorbed particles for each thread
-        // // and voxel, then merge into scene
-        // std::array<std::unordered_map<int, std::vector<Particle>>,
-        //   N_THREADS> threadPartsAbsorbed;
 
         // For single thread
         std::mt19937 gen;
         // Distribution should be in (0, 1) range
         std::uniform_real_distribution<float> dist;
-
-        // // Stores particles created in each
-        // // thread after running processParticlesRange()
-        // std::array<std::vector<Particle>, N_THREADS> threadsNewParticles;
 
         // void processParticlesRange(int thrIdx, float time, size_t startIdx, size_t endIdx,
         //   std::vector<Particle>& currentParticles);

@@ -358,12 +358,12 @@ void World::simulate(float time) {
             if(!p.isActive()) continue;
             
             auto voxelPos = nextVoxelPosVec(p);
-            auto* vEntry = voxelEntryAtPos(voxelPos);
-            if(!vEntry) {
+            auto* vEntryPtr = voxelEntryAtPos(voxelPos);
+            if(!vEntryPtr) {
                 p.deactivate();
                 continue;
             }
-            auto results = vEntry->vPtr->processParticle(
+            auto results = vEntryPtr->vPtr->processParticle(
                 p, voxelPos, voxelHalfSide, dist, gen);
 
             if(!results.first.empty()) {
@@ -371,7 +371,11 @@ void World::simulate(float time) {
                     results.first.begin(), results.first.end());
             }
             if(!results.second.empty()) {
-                vEntry->addPartsAbsorbed(results.second);
+                if(COLLECT_ABSORBED_PARTICLES) {
+                    vEntryPtr->addPartsAbsorbed(results.second);
+                } else {
+                    vEntryPtr->incrementPartsAbsorbed(results.second.size());
+                }
             }
         }
 
@@ -431,24 +435,21 @@ void World::simulate(float time) {
 
         addParticlesEmittedMultithread(time);
 
-        // std::cout << "Threads at 1: " << omp_get_num_threads() << std::endl;
-
-        // bool a = false;
-
-
-        std::array<std::vector<Particle>, N_THREADS> localPartsEmitted;
+        std::array<std::vector<Particle>, N_THREADS> localEmitted;
         std::array<std::unordered_map<VoxelEntry*, std::vector<Particle>>, N_THREADS> localPartsAbsorbedMap;
+        std::array<std::unordered_map<VoxelEntry*, int>, N_THREADS> localCountMap;
+
+        size_t sceneSize = scene.size();
+        for(int i = 0; i<N_THREADS; i++) {
+            localPartsAbsorbedMap[i].reserve(sceneSize);
+            localCountMap[i].reserve(sceneSize);
+        }
 
         #pragma omp parallel for schedule(dynamic)
         for(size_t i = 0; i<particles.size(); i++) {
 
             int thrIdx = omp_get_thread_num();
             auto& p = particles[i];
-
-            // if(!a) {
-            //     std::cout << "Threads at 2: " << omp_get_num_threads() << std::endl;
-            //     a = true;
-            // }
 
             if(!p.isActive()) continue;
             auto vPos = nextVoxelPosVec(p);
@@ -463,47 +464,41 @@ void World::simulate(float time) {
             auto results = vEntryPtr->vPtr->processParticle(p, vPos,
                 voxelHalfSide, threadDists[thrIdx], threadGens[thrIdx]);
 
-            // if(!results.first.empty()) {
-            //     // append produced particles
-            //     // particles.insert(particles.end(),
-            //     //   results.first.begin(), results.first.end());
-            //     localPartsEmitted.insert(localPartsEmitted.end(),
-            //       results.first.begin(), results.first.end());
-            // }
+
             if(!results.first.empty()) {
-                localPartsEmitted[thrIdx].insert(localPartsEmitted[thrIdx].end(),
+                localEmitted[thrIdx].insert(localEmitted[thrIdx].end(),
                     results.first.begin(), results.first.end());
             }
-            // if(!results.second.empty()) {
-            //     // append absorbed particles
-            //     vEntryPtr->addPartsAbsorbed(results.second);
-            //     // auto& out = threadPartAccumulator[i];
-            //     // out.insert(out.end(), results.second.begin(), results.first.end());
-            // }
-            // vEntryPtr->addPartsAbsorbed(results.second);
+
             if(!results.second.empty()) {
-                auto& insertIn = localPartsAbsorbedMap[thrIdx][vEntryPtr];
-                // std::lock_guard<std::mutex> lock(insertIn.getMtxRef());
-                insertIn.insert(insertIn.end(), results.second.begin(), results.second.end());
+                if(COLLECT_ABSORBED_PARTICLES) {
+                    auto& insertIn = localPartsAbsorbedMap[thrIdx][vEntryPtr];
+                    insertIn.insert(insertIn.end(), results.second.begin(), results.second.end());
+                } else {
+                    localCountMap[thrIdx][vEntryPtr] += results.second.size();
+                }
             }
         }
 
 
         cleanParticles(particles);
-        // std::cout << "Threads at 1: " << omp_get_num_threads() << std::endl;
         for(int i = 0; i<N_THREADS; i++) {
             particles.insert(
                 particles.end(),
-                localPartsEmitted[i].begin(),
-                localPartsEmitted[i].end()
+                localEmitted[i].begin(),
+                localEmitted[i].end()
             );
 
-            for(const auto& absorbedMap : localPartsAbsorbedMap[i]) {
-                absorbedMap.first->addPartsAbsorbed(absorbedMap.second);
+            if(COLLECT_ABSORBED_PARTICLES) {
+                for(const auto& absorbedMap : localPartsAbsorbedMap[i]) {
+                    absorbedMap.first->addPartsAbsorbed(absorbedMap.second);
+                }
+            } else {
+                for(const auto& countMap : localCountMap[i]) {
+                    countMap.first->incrementPartsAbsorbed(countMap.second);
+                }
             }
         }
-        // particles.insert(particles.end(),
-        //     localPartsEmitted.begin(), localPartsEmitted.end());
     }
 }
 
@@ -513,9 +508,10 @@ void World::setScene(std::vector<Voxel*>& newScene, short int newX,
     if(newY != 0) sizeY = newY;
     if(newZ != 0) sizeZ = newZ;
 
-    scene = {};
+    scene.clear();
+    scene.reserve(newScene.size());
     for(size_t i = 0; i<newScene.size(); i++) {
-        scene.push_back(VoxelEntry{newScene[i], getVoxelPos(i)});
+        scene.emplace_back(VoxelEntry{newScene[i], getVoxelPos(i)});
     }
 
     updateLists();
@@ -528,11 +524,12 @@ std::vector<VoxelEntry*> World::getDetectorEntries() {
 int World::detectorCountAt(short int x, short int y, short int z) {
     auto* detectorEntryPtr = voxelEntryAt(x, y, z);
     assert(detectorEntryPtr->vPtr->getType() == DETECTOR);
-    return detectorEntryPtr->getNPartsAbsorbed();
+    return detectorEntryPtr->getNPartsAbsorbed();  // Automatically checks for COLLECT_ABSORBED_PARTICLES
 }
 
 std::vector<Particle> World::detectorPartListAt(short int x,
   short int y, short int z) {
+    assert(COLLECT_ABSORBED_PARTICLES);
     auto detectorEntryPtr = voxelEntryAt(x, y, z);
     assert(detectorEntryPtr->vPtr->getType() == DETECTOR);
     return detectorEntryPtr->getPartsAbsorbedCopy();
