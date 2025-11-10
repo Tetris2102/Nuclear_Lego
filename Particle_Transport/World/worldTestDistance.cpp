@@ -21,7 +21,7 @@ int main() {
     Voxel air_obj(MATTER, airMat);
     Voxel* air = &air_obj;
 
-    IsotopeSample betaSample("betaSample", BETA, 1.0, 300000);
+    IsotopeSample betaSample("betaSample", BETA, 1.0, 1000000);
     Voxel sourceInAir_obj(SOURCE, airMat, betaSample);
     Voxel* sourceInAir = &sourceInAir_obj;
 
@@ -72,7 +72,7 @@ int main() {
     //     detectors[i]->getPartsAbsorbed() << std::endl;
     // }
     std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Simulating 10.0s took: " << elapsed.count() <<
+    std::cout << "Simulating 1.0s took: " << elapsed.count() <<
       " seconds" << std::endl;
 
     std::cout << "Total particle count on exit: " <<
