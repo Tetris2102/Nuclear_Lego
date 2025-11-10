@@ -9,14 +9,14 @@
 // Have to connect RC network to PIN_LVL_OUT
 // to smooth PWM (C=4.7uF, R=1.0kOhm)
 #define PIN_LVL_OUT 1
-#define PIN_LVL_IN 4
+#define PIN_LVL_IN A2  // corresponds to PB4
 
 // Corresponding enums are stored in main code (enums.h)
 uint8_t voxelType;           // at EEPROM 0
-uint8_t materialType;        // at EEPROM 1
-uint16_t activity;           // no need to store
-uint8_t sampleType;          // at EEPROM 2
-uint8_t particlesDetectable  // at EEPROM 3
+uint8_t materialType;         // at EEPROM 1
+uint16_t activity;            // no need to store
+uint8_t sampleType;           // at EEPROM 2
+uint8_t particlesDetectable;  // at EEPROM 3
 // particlesDetectable represents [NEUTRON, GAMMA, BETA, ALPHA]
 // (encoded into the 4 least significant bits)
 
@@ -61,10 +61,10 @@ void loop() {
 
 void updateParams() {
     // Get parameters from EEPROM on startup
-    voxelType = EEPROM.get(0);
-    materialType = EEPROM.get(1);
-    sampleType = EEPROM.get(2);
-    particlesDetectable = EEPROM.get(3);
+    voxelType = EEPROM.read(0);
+    materialType = EEPROM.read(1);
+    sampleType = EEPROM.read(2);
+    particlesDetectable = EEPROM.read(3);
 
     // Determine voxel's level
     uint16_t v_in = analogRead(PIN_LVL_IN);
