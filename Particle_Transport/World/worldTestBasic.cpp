@@ -30,7 +30,7 @@ int main(int argc, char const *argv[]) {
     world.setScene(scene);
     for(int i = 0; i<10; i++) {
         world.simulate(0.5);
-        std::cout << "Active particles: " << world.getParticleCount()
+        std::cout << "Active particles: " << world.getParticleGroupCount()
           << "." << std::endl;
     }
     std::cout << "Emitted: " << sourceInAir.getPartsEmitted(5.0)

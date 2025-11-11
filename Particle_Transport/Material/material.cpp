@@ -18,11 +18,11 @@ float Material::getADensity() {
 		return atomicDensity;
 }
 
-float Material::getXS(EventType et, const Particle& incP) {
+float Material::getXS(EventType et, const ParticleGroup& incP) {
 		return xstable.findRecord(et, incP).xs;
 }
 
-std::array<float, 3> Material::getEventXSs(const Particle& incP) {
+std::array<float, 3> Material::getEventXSs(const ParticleGroup& incP) {
 		std::array<float, 3> xss;
 		std::array<XSRecord, 3> records = xstable.findEventRecords(incP);
 		xss[0] = records[0].xs;
@@ -31,6 +31,6 @@ std::array<float, 3> Material::getEventXSs(const Particle& incP) {
 		return xss;
 }
 
-std::array<XSRecord, 3> Material::getEventRecords(const Particle& incP) {
+std::array<XSRecord, 3> Material::getEventRecords(const ParticleGroup& incP) {
 		return xstable.findEventRecords(incP);
 }

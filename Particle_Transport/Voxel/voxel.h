@@ -3,7 +3,7 @@
 #ifndef VOXEL_H
 #define VOXEL_H
 
-// TODO: maybe add void processParticleGroup(ParticleGroup* pg); for managing
+// TODO: maybe add void processParticleGroupGroup(ParticleGroupGroup* pg); for managing
 // large fluxes, i.e. treat one particle as many having the same parameters
 
 #include "../Material/material.h"
@@ -33,11 +33,11 @@ class Voxel {
         VoxelType type;
         Material material;
         IsotopeSample sample;
-        // std::vector<Particle> particlesAbsorbed;  // For DETECTOR Voxels
+        // std::vector<ParticleGroup> particlesAbsorbed;  // For DETECTOR Voxels
 
         // Probability of any interaction happening
-        float getTotalIntProb(const Particle& p, float travelDist);
-        XSRecord chooseEventAndXS(const Particle& p, std::mt19937& gen);
+        float getTotalIntProb(const ParticleGroup& p, float travelDist);
+        XSRecord chooseEventAndXS(const ParticleGroup& p, std::mt19937& gen);
         float chooseIntDistAlong(float xs, float tmin, float tmax,
           std::uniform_real_distribution<float>& dist, std::mt19937& gen);
         Vector3 getScatterMomentum(const Vector3& oldMom, float energy,
@@ -71,27 +71,27 @@ class Voxel {
         // Manage reactions and their probabilities for a particle
         // Returns std::pair of vector of particles created + vector
         // of particles absorbed (if any)
-        std::pair<std::vector<Particle>, std::vector<Particle>> processParticle(
-          Particle& p, const Vector3& voxelPosition, float voxelHalfSide,
+        std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> processParticleGroup(
+          ParticleGroup& p, const Vector3& voxelPosition, float voxelHalfSide,
           std::uniform_real_distribution<float>& dist, std::mt19937& gen);
 
-        // For multithreading, output the same as from processParticle()
-        // std::pair<std::vector<Particle>, std::vector<Particle>> processParticleThreadSafe(
-        //   Particle& p, const Vector3& voxelPosition, float voxelHalfSide,
+        // For multithreading, output the same as from processParticleGroup()
+        // std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> processParticleGroupThreadSafe(
+        //   ParticleGroup& p, const Vector3& voxelPosition, float voxelHalfSide,
         //   std::uniform_real_distribution<float>& dist, std::mt19937& gen);
 
-        void moveToExit(Particle& p, float voxelHalfSide,
+        void moveToExit(ParticleGroup& p, float voxelHalfSide,
           const Vector3& voxelPos) const;
-        bool intersects(const Particle& p, float voxelHalfSide,
+        bool intersects(const ParticleGroup& p, float voxelHalfSide,
           const Vector3& position) const;
-        std::array<float, 2> intersectParams(const Particle& p,
+        std::array<float, 2> intersectParams(const ParticleGroup& p,
           float voxelHalfSide, const Vector3& position) const;  // returns [tmin, tmax]
         VoxelType getType() const;
         // void setPosition(const Vector3& newPosition);
         // Vector3 getPosition() const;
         void setMaterial(const Material& newMat);
         Material getMaterial();
-        std::vector<Particle> getPartsEmittedList(float timeElapsed,
+        std::vector<ParticleGroup> getPartsEmittedList(float timeElapsed,
           const Vector3& position, std::uniform_real_distribution<float>& dist,
           std::mt19937& gen);
         // Get mutex by reference
@@ -109,7 +109,7 @@ class Voxel {
     static void resetGlobalStats();
         // int getPartsEmitted(float time,
         //   std::uniform_real_distribution<float>& dist, std::mt19937& gen);
-        // std::vector<Particle> getPartsAbsorbedList();
+        // std::vector<ParticleGroup> getPartsAbsorbedList();
         // int getPartsAbsorbed();
         // void clearPartsAbsorbed();
 };

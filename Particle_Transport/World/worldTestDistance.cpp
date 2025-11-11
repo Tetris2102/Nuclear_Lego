@@ -11,7 +11,7 @@
 #include <memory>
 #include <utility>
 
-// TODO: make Voxel::processParticle() accept pointers to RNG objects
+// TODO: make Voxel::processParticleGroup() accept pointers to RNG objects
 // instead of having RNG instances for every object
 
 int main() {
@@ -76,7 +76,7 @@ int main() {
       " seconds" << std::endl;
 
     std::cout << "Total particle count on exit: " <<
-      world.getTotalParticles() << std::endl;
+      world.getTotalParticleGroups() << std::endl;
 
     return 0;
 }

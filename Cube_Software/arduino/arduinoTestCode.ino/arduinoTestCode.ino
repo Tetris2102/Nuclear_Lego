@@ -80,7 +80,7 @@ void scanMux1Channel(uint8_t addr) {
       Serial.print("SampleType: ");
       Serial.println(Wire.read());
 
-      Serial.println("Particles detectable: ");
+      Serial.println("ParticleGroups detectable: ");
       uint8_t partsDetectableRead = Wire.read();
       Serial.print("ALPHA: ");
       Serial.println((partsDetectableRead >> 0) & 1);

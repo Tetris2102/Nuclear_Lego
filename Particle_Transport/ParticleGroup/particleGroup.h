@@ -1,4 +1,4 @@
-// particle.h
+// particleGroup.h
 
 #ifndef PARTICLE_H
 #define PARTICLE_H
@@ -14,18 +14,19 @@ enum ParticleType {
     NEUTRON
 };
 
-class Particle {
+class ParticleGroup {
     private:
         ParticleType type;
         bool exists = true;
         float E = 0.0f;  // energy
+        uint16_t numParticles = 1;
 
         // Position
         Vector3 position = {0.0, 0.0, 0.0};
         // Momentum
         Vector3 mom = {0.0, 0.0, 0.0};
     public:
-        Particle(ParticleType _type, float _energy, Vector3 _position,
+        ParticleGroup(ParticleType _type, float _energy, Vector3 _position,
           Vector3 _momentumXYZ) {
             type = _type;
             E = _energy;
@@ -34,7 +35,7 @@ class Particle {
         }
 
         // Empty constructor for initializing particle properties later
-        Particle() {};
+        ParticleGroup() {};
 
         void setEnergy(float newE);
         float getEnergy() const;
@@ -54,6 +55,9 @@ class Particle {
         float getX() const;
         float getY() const;
         float getZ() const;
+
+        void setGroupSize(uint16_t newNumParticles);
+        uint16_t getGroupSize();
 
         Vector3 pointAlongVec(float t) const;
         void moveToPointAlong(float t);
