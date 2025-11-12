@@ -76,7 +76,7 @@ int main() {
       " seconds" << std::endl;
 
     std::cout << "Total particle count on exit: " <<
-      world.getTotalParticleGroups() << std::endl;
+      world.getTotalParticles() << std::endl;
 
     return 0;
 }

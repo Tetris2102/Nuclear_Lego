@@ -4,5 +4,6 @@
 #define MULTITHREAD_ON true
 #define N_THREADS 4
 #define COLLECT_ABSORBED_PARTICLES false
+#define USE_ADAPTIVE_GROUP_SIZE true
 
 #endif

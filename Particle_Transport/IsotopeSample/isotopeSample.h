@@ -40,9 +40,9 @@ class IsotopeSample {
         // IsotopeSample& operator=(IsotopeSample&&) noexcept = default;
 
         // Create a particle list with uniform distribution in space
-        std::vector<ParticleGroup> generateParticleGroups(float timeElapsed,
-          Vector3 originXYZ, std::uniform_real_distribution<float>& dist,
-          std::mt19937& gen);
+        std::vector<ParticleGroup> generateParticleGroups(
+          float timeElapsed, Vector3 originXYZ, uint16_t partGroupSize,
+          std::uniform_real_distribution<float>& dist, std::mt19937& gen);
         std::string getName();
         void setActivity(float a);
         float getActivity();

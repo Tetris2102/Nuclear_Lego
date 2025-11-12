@@ -15,6 +15,7 @@
 #include <utility>  // for std::pair
 #include <atomic>
 // #include <unordered_map>
+#include <chrono>
 
 struct alignas(64) VoxelEntry {
         Voxel* vPtr;
@@ -117,6 +118,8 @@ class World {
         std::uniform_real_distribution<float> dist;
 
         std::chrono::duration<float> lastIterationTook;
+        // Controls when to decrease particleGroupSize
+        float stepChangeRatio = 0.5;
         uint16_t particleGroupSize = 1;
 
         // void processParticleGroupsRange(int thrIdx, float time, size_t startIdx, size_t endIdx,
@@ -170,7 +173,7 @@ class World {
         int detectorCountAt(short int x, short int y, short int z);
         std::vector<ParticleGroup> detectorPartListAt(short int x,
           short int y, short int z);
-        int getTotalParticleGroups() const;
+        size_t getTotalParticles();
 };
 
 #endif

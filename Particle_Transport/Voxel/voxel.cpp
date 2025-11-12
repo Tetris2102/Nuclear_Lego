@@ -337,12 +337,14 @@ Material Voxel::getMaterial() {
     return material;
 }
 
-std::vector<ParticleGroup> Voxel::getPartsEmittedList(float timeElapsed,
-  const Vector3& position, std::uniform_real_distribution<float>& dist,
-  std::mt19937& gen) {
+std::vector<ParticleGroup> Voxel::getPartsEmittedList(
+  float timeElapsed, const Vector3& position, float partGroupSize,
+  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
     assert(type == SOURCE);
-    return sample.generateParticleGroups(timeElapsed, position,
-      dist, gen);
+    return sample.generateParticleGroups(
+      timeElapsed, position,
+      partGroupSize, dist, gen
+    );
 }
 
 std::mutex& Voxel::getMtxRef() {

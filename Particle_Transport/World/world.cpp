@@ -225,7 +225,7 @@ void World::addParticlesEmitted(float time, std::mt19937& gen,
     for(auto* vEntPtr : sources) {
         Vector3 voxelPosVec = getVoxelCoordVec3(vEntPtr->x, vEntPtr->y, vEntPtr->z);
         auto particlesEmitted = vEntPtr->vPtr->getPartsEmittedList(
-          time, voxelPosVec, dist, gen);
+          time, voxelPosVec, particleGroupSize, dist, gen);
         for(auto& p : particlesEmitted) vEntPtr->vPtr->moveToExit(
           p, voxelHalfSide, voxelPosVec);
         particles.insert(particles.end(), particlesEmitted.begin(),
@@ -243,7 +243,9 @@ void World::addParticlesEmittedMultithread(float time) {
         int thrIdx = omp_get_thread_num();
         Vector3 voxelPosVec = getVoxelCoordVec3(vEntPtr->x, vEntPtr->y, vEntPtr->z);
         auto particlesEmitted = vEntPtr->vPtr->getPartsEmittedList(
-          time, voxelPosVec, threadDists[thrIdx], threadGens[thrIdx]);
+          time, voxelPosVec, particleGroupSize,
+          threadDists[thrIdx], threadGens[thrIdx]
+        );
         for(auto& p : particlesEmitted) vEntPtr->vPtr->moveToExit(
           p, voxelHalfSide, voxelPosVec);
         auto& insertIn = localLists[thrIdx];
@@ -351,8 +353,12 @@ void World::simulate(float time) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    if(time < lastIterationTook.count()) {
-        particleGroupSize *= 2;
+    // Adjust particleGroupSize based on performance
+    auto lastIterationDuration = lastIterationTook.count();
+    if(time < lastIterationDuration) {
+        particleGroupSize = (uint16_t)std::min(particleGroupSize * 2, 255);
+    } else if (time * stepChangeRatio > lastIterationDuration) {
+        particleGroupSize = (uint16_t)std::max(particleGroupSize / 2, 1);
     }
 
     if(particles.size() < 500 || !MULTITHREAD_ON) {
@@ -377,11 +383,14 @@ void World::simulate(float time) {
                     results.first.begin(), results.first.end());
             }
             if(!results.second.empty()) {
-                if(COLLECT_ABSORBED_PARTICLES) {
+                #if COLLECT_ABSORBED_PARTICLES
                     vEntryPtr->addPartsAbsorbed(results.second);
-                } else {
-                    vEntryPtr->incrementPartsAbsorbed(results.second.size() * particleGroupSize);
-                }
+                #elif USE_ADAPTIVE_GROUP_SIZE
+                    vEntryPtr->incrementPartsAbsorbed(
+                      results.second.size() * p.getGroupSize());
+                #else
+                    vEntryPtr->incrementPartsAbsorbed(results.second.size());
+                #endif
             }
         }
 
@@ -457,8 +466,6 @@ void World::simulate(float time) {
             int thrIdx = omp_get_thread_num();
             auto& p = particles[i];
 
-            p.setGroupSize(particleGroupSize);
-
             if(!p.isActive()) continue;
             auto vPos = nextVoxelPosVec(p);
             auto* vEntryPtr = voxelEntryAtPos(vPos);
@@ -479,12 +486,17 @@ void World::simulate(float time) {
             }
 
             if(!results.second.empty()) {
-                if(COLLECT_ABSORBED_PARTICLES) {
+                #if COLLECT_ABSORBED_PARTICLES
                     auto& insertIn = localPartsAbsorbedMap[thrIdx][vEntryPtr];
-                    insertIn.insert(insertIn.end(), results.second.begin(), results.second.end());
-                } else {
-                    localCountMap[thrIdx][vEntryPtr] += results.second.size();
-                }
+                    insertIn.insert(insertIn.end(),
+                      results.second.begin(), results.second.end());
+                #elif USE_ADAPTIVE_GROUP_SIZE
+                    localCountMap[thrIdx][vEntryPtr] +=
+                      results.second.size() * p.getGroupSize();
+                #else
+                    localCountMap[thrIdx][vEntryPtr] +=
+                      results.second.size() * p.getGroupSize();
+                #endif
             }
         }
 
@@ -497,19 +509,17 @@ void World::simulate(float time) {
                 localEmitted[i].end()
             );
 
-            if(COLLECT_ABSORBED_PARTICLES) {
+            #if COLLECT_ABSORBED_PARTICLES
                 for(const auto& absorbedMap : localPartsAbsorbedMap[i]) {
                     absorbedMap.first->addPartsAbsorbed(absorbedMap.second);
                 }
-            } else {
+            #else
                 for(const auto& countMap : localCountMap[i]) {
-                    countMap.first->incrementPartsAbsorbed(
-                      countMap.second * particleGroupSize);
+                    countMap.first->incrementPartsAbsorbed(countMap.second);
                 }
-            }
+            #endif
         }
     }
-
     auto end = std::chrono::high_resolution_clock::now();
     lastIterationTook = end - start;
 }
@@ -547,6 +557,8 @@ std::vector<ParticleGroup> World::detectorPartListAt(short int x,
     return detectorEntryPtr->getPartsAbsorbedCopy();
 }
 
-int World::getTotalParticleGroups() const {
-    return particles.size();
+size_t World::getTotalParticles() {
+    size_t size = 0;
+    for(auto& p : particles) size += p.getGroupSize();
+    return size;
 }
