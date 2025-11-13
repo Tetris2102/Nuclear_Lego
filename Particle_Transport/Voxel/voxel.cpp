@@ -338,7 +338,7 @@ Material Voxel::getMaterial() {
 }
 
 std::vector<ParticleGroup> Voxel::getPartsEmittedList(
-  float timeElapsed, const Vector3& position, float partGroupSize,
+  float timeElapsed, const Vector3& position, uint16_t partGroupSize,
   std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
     assert(type == SOURCE);
     return sample.generateParticleGroups(

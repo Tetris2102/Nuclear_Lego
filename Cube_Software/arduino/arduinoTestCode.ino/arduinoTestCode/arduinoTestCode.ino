@@ -93,6 +93,7 @@ void scanMux1Channel(uint8_t addr) {
 
       Serial.print("Level: ");
       Serial.println(Wire.read());
+      deactivateMux(MUX1_ADDR);
 
       Serial.println("\n");
       if(!Wire.available()) {
@@ -100,5 +101,4 @@ void scanMux1Channel(uint8_t addr) {
       } else {
           Serial.println("Data reading not finished.");
       }
-      deactivateMux(MUX1_ADDR);
 }

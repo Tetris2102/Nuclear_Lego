@@ -92,7 +92,7 @@ class Voxel {
         void setMaterial(const Material& newMat);
         Material getMaterial();
         std::vector<ParticleGroup> getPartsEmittedList(
-          float timeElapsed, const Vector3& position, float partGroupSize,
+          float timeElapsed, const Vector3& position, uint16_t partGroupSize,
           std::uniform_real_distribution<float>& dist, std::mt19937& gen);
         // Get mutex by reference
         std::mutex& getMtxRef();

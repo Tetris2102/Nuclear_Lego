@@ -365,7 +365,7 @@ void World::simulate(float time) {
         addParticlesEmitted(time, gen, dist);
         // Single-threaded processing: collect newly created particles and
         // record absorbed particles so behavior matches multithreaded path.
-        std::vector<ParticleGroup> singleThreadNewParticleGroups;
+        std::vector<ParticleGroup> singleThreadNewParticles;
         for(auto& p : particles) {
             if(!p.isActive()) continue;
 
@@ -379,7 +379,7 @@ void World::simulate(float time) {
                 p, voxelPos, voxelHalfSide, dist, gen);
 
             if(!results.first.empty()) {
-                singleThreadNewParticleGroups.insert(singleThreadNewParticleGroups.end(),
+                singleThreadNewParticles.insert(singleThreadNewParticles.end(),
                     results.first.begin(), results.first.end());
             }
             if(!results.second.empty()) {
@@ -396,8 +396,8 @@ void World::simulate(float time) {
 
         cleanParticleGroups(particles);
         // Merge newly created particles after cleaning existing ones
-        particles.insert(particles.end(), singleThreadNewParticleGroups.begin(),
-            singleThreadNewParticleGroups.end());
+        particles.insert(particles.end(), singleThreadNewParticles.begin(),
+            singleThreadNewParticles.end());
     } else {
         // std::vector<ParticleGroup> currentParticleGroups;
 
@@ -522,6 +522,9 @@ void World::simulate(float time) {
     }
     auto end = std::chrono::high_resolution_clock::now();
     lastIterationTook = end - start;
+
+    std::cout << "ParticleGroupSize: " << particleGroupSize << std::endl;
+    std::cout << "Objects in particles vector: " << particles.size() << std::endl;
 }
 
 void World::setScene(std::vector<Voxel*>& newScene, short int newX,
