@@ -1,11 +1,11 @@
 #include <Wire.h>
 
-#define MUX1_ADDR 0x71
-#define MUX2_ADDR 0x70
+#define MUX1_ADDR 0x70
+#define MUX2_ADDR 0x71
 
 uint8_t voxelType = 1;      // MATTER
 uint8_t materialType = 2;   // PB_207_M
-uint16_t activity = 100;  // 48 kBq
+uint16_t activity = 25;  // 48 kBq
 uint8_t isotopeSample = 0;  // NONE_S
 uint8_t particlesDetectable = 0b00000000;  // GAMMA and BETA
 
@@ -63,6 +63,23 @@ void scanMux1Channel(uint8_t addr) {
 
       delay(5);
 
+      selectMuxChannel(MUX2_ADDR, 0);
+      Wire.beginTransmission(addr);  // Level 0 => address 8
+      Wire.write(voxelType);
+      Wire.write(materialType);
+      Wire.write(activityLeastByte);
+      Wire.write(activityMostByte);
+      Wire.write(isotopeSample);
+      Wire.write(particlesDetectable);
+      error = Wire.endTransmission();
+
+      if(error == 0) {
+          Serial.println("Successful write to cube on MUX2");
+      } else {
+          Serial.println("Failed to write to cube at MUX2");
+      }
+      deactivateMux(MUX2_ADDR);
+
       Serial.println("Cube parameters written.");
 
       Serial.println("Requesting data...");
@@ -94,6 +111,35 @@ void scanMux1Channel(uint8_t addr) {
       Serial.print("Level: ");
       Serial.println(Wire.read());
       deactivateMux(MUX1_ADDR);
+
+      Serial.println("\n");
+
+      selectMuxChannel(MUX2_ADDR, 0);
+      Wire.requestFrom(addr, 7);  // Request 7 bytes
+
+      Serial.print("VoxelType: ");
+      Serial.println(Wire.read());
+      Serial.print("MaterialType: ");
+      Serial.println(Wire.read());
+      Serial.print("Activity (Bq): ");
+      Serial.println(Wire.read() | Wire.read() << 8);
+      Serial.print("SampleType: ");
+      Serial.println(Wire.read());
+
+      Serial.println("ParticleGroups detectable: ");
+      partsDetectableRead = Wire.read();
+      Serial.print("ALPHA: ");
+      Serial.println((partsDetectableRead >> 0) & 1);
+      Serial.print("BETA: ");
+      Serial.println((partsDetectableRead >> 1) & 1);
+      Serial.print("GAMMA: ");
+      Serial.println((partsDetectableRead >> 2) & 1);
+      Serial.print("NEUTRON: ");
+      Serial.println((partsDetectableRead >> 3) & 1);
+
+      Serial.print("Level: ");
+      Serial.println(Wire.read());
+      deactivateMux(MUX2_ADDR);
 
       Serial.println("\n");
       if(!Wire.available()) {
