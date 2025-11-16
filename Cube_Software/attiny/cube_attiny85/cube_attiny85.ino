@@ -88,7 +88,7 @@ void reportOnRequest() {
 }
 
 void receiveAndStore(uint8_t numBytes) {
-    if(numBytes == 5) {
+    if(numBytes == 6) {
         voxelType = TinyWireS.read();
         materialType = TinyWireS.read();
         activity = TinyWireS.read() | (TinyWireS.read() << 8);
