@@ -2,17 +2,16 @@
 #include <EEPROM.h>
 
 #define MAX_LEVEL 2  // Maximum height MINUS 1, so indexing begins from 0
+// 1 = maximum sensitivity, 65535 = minimum sensitivity (very unsensitive)
+#define SENSITIVITY (uint16_t)1
 
 // SDA at PB0
 // SCL at PB2
 #define PIN_BUZZ 3     // Buzzer pin
-// Have to connect RC network to PIN_LVL_OUT
-// to smooth PWM (C=4.7uF, R=1.0kOhm)
-#define PIN_LVL_OUT 1
 #define PIN_LVL_IN A2  // corresponds to PB4
 
 // Corresponding enums are stored in main code (enums.h)
-uint8_t voxelType;           // at EEPROM 0
+uint8_t voxelType;            // at EEPROM 0
 uint8_t materialType;         // at EEPROM 1
 uint16_t activity;            // no need to store
 uint8_t sampleType;           // at EEPROM 2
@@ -30,7 +29,6 @@ void beepBuzzer();
 
 void setup() {
     pinMode(PIN_BUZZ, OUTPUT);
-    pinMode(PIN_LVL_OUT, OUTPUT);
     pinMode(PIN_LVL_IN, INPUT);
 
     randomSeed(analogRead(PIN_LVL_IN));
@@ -116,7 +114,8 @@ uint16_t msBetweenDecays(uint16_t activity) {
       (diff * diff * diff) / (3 * 65535 * 65535);
 
     uint16_t mean_ms = 1000UL / activity;
-    uint32_t result = (mean_ms * ln_approx) / 65535;
+    // First compute in uint32_t to avoid overflow behaviour
+    uint32_t result = (mean_ms * ln_approx) / ((uint16_t)65535 * SENSITIVITY);
 
     return (uint16_t)result;
 }
