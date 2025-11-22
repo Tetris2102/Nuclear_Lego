@@ -2,8 +2,6 @@
 #include <EEPROM.h>
 
 #define MAX_LEVEL 2  // Maximum height MINUS 1, so indexing begins from 0
-// 1 = maximum sensitivity, 65535 = minimum sensitivity (very unsensitive)
-#define SENSITIVITY (uint16_t)1
 
 // SDA at PB0
 // SCL at PB2
@@ -15,10 +13,11 @@ uint8_t voxelType;            // at EEPROM 0
 uint8_t materialType;         // at EEPROM 1
 uint16_t activity;            // no need to store
 uint8_t sampleType;           // at EEPROM 2
-uint8_t particlesDetectable;  // at EEPROM 3
 // particlesDetectable represents [NEUTRON, GAMMA, BETA, ALPHA]
 // (encoded into the 4 least significant bits)
-
+uint8_t particlesDetectable;  // at EEPROM 3
+// 1 = maximum sensitivity, 65535 = minimum sensitivity (very unsensitive)
+uint8_t sensitivity;          // at EEPROM 4
 uint8_t level;
 
 void updateParams();
@@ -63,6 +62,7 @@ void updateParams() {
     materialType = EEPROM.read(1);
     sampleType = EEPROM.read(2);
     particlesDetectable = EEPROM.read(3);
+    sensitivity = min(1, EEPROM.read(4));  // erased EEPROM holds 255
 
     // Determine voxel's level
     uint16_t v_in = analogRead(PIN_LVL_IN);
@@ -86,17 +86,19 @@ void reportOnRequest() {
 }
 
 void receiveAndStore(uint8_t numBytes) {
-    if(numBytes == 6) {
+    if(numBytes == 7) {
         voxelType = TinyWireS.read();
         materialType = TinyWireS.read();
         activity = TinyWireS.read() | (TinyWireS.read() << 8);
         sampleType = TinyWireS.read();
         particlesDetectable = TinyWireS.read();
+        sensitivity = TinyWireS.read();
 
         EEPROM.update(0, voxelType);
         EEPROM.update(1, materialType);
         EEPROM.update(2, sampleType);
         EEPROM.update(3, particlesDetectable);
+        EEPROM.update(4, sensitivity);
     }
 }
 
@@ -115,7 +117,7 @@ uint16_t msBetweenDecays(uint16_t activity) {
 
     uint16_t mean_ms = 1000UL / activity;
     // First compute in uint32_t to avoid overflow behaviour
-    uint32_t result = (mean_ms * ln_approx) / ((uint16_t)65535 * SENSITIVITY);
+    uint32_t result = (mean_ms * ln_approx) / ((uint16_t)65535 * sensitivity);
 
     return (uint16_t)result;
 }
