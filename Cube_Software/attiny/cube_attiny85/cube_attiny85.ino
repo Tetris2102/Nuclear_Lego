@@ -45,14 +45,17 @@ uint16_t decay_interval_ms;
 unsigned long last_beep;
 
 void loop() {
-    TinyWireS_stop_check();
+    // If voxel is detector
+    if(voxelType == 2) {
+        TinyWireS_stop_check();
 
-    unsigned long now = millis();
+        unsigned long now = millis();
 
-    if(now - last_beep > decay_interval_ms) {
-        beepBuzzer();
-        decay_interval_ms = msBetweenDecays(activity);
-        last_beep = now;
+        if(now - last_beep > decay_interval_ms) {
+            beepBuzzer();
+            decay_interval_ms = msBetweenDecays(activity);
+            last_beep = now;
+        }
     }
 }
 
