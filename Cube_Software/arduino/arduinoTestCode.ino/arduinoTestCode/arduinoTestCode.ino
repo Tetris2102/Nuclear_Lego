@@ -3,11 +3,11 @@
 #define MUX1_ADDR 0x70
 #define MUX2_ADDR 0x71
 
-uint8_t voxelType = 1;      // MATTER
+uint8_t voxelType = 2;      // DETECTOR
 uint8_t materialType = 2;   // PB_207_M
 uint16_t activity = 25;  // 48 kBq
 uint8_t isotopeSample = 0;  // NONE_S
-uint8_t particlesDetectable = 0b00000000;  // GAMMA and BETA
+uint8_t particlesDetectable = 0b00000110;  // GAMMA and BETA
 
 void selectMuxChannel(uint8_t addr, uint8_t channel) {
     if(channel > 7) return;
