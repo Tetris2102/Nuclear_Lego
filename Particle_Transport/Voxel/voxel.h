@@ -33,6 +33,7 @@ class Voxel {
         VoxelType type;
         Material material;
         IsotopeSample sample;
+        std::vector<ParticleType> particlesDetectable;
         // std::vector<ParticleGroup> particlesAbsorbed;  // For DETECTOR Voxels
 
         // Probability of any interaction happening
@@ -86,16 +87,22 @@ class Voxel {
           const Vector3& position) const;
         std::array<float, 2> intersectParams(const ParticleGroup& p,
           float voxelHalfSide, const Vector3& position) const;  // returns [tmin, tmax]
-        VoxelType getType() const;
+        void setType(VoxelType vt);
+        VoxelType getType();
         // void setPosition(const Vector3& newPosition);
         // Vector3 getPosition() const;
         void setMaterial(const Material& newMat);
         Material getMaterial();
+        void setIsotopeSample(IsotopeSample is);
+        IsotopeSample getIsotopeSample();
+        void setPartsDetectable(std::vector<ParticleType>& detectableList);
+        std::vector<ParticleType> getParticlesDetectable();
         std::vector<ParticleGroup> getPartsEmittedList(
           float timeElapsed, const Vector3& position, uint16_t partGroupSize,
           std::uniform_real_distribution<float>& dist, std::mt19937& gen);
         // Get mutex by reference
         std::mutex& getMtxRef();
+        bool isDetectable(ParticleType pt);
 
     // Instrumentation helpers (global across all voxels)
     struct VoxelStats {

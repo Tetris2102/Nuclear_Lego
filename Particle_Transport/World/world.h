@@ -173,6 +173,7 @@ class World {
         int detectorCountAt(short int x, short int y, short int z);
         std::vector<ParticleGroup> detectorPartListAt(short int x,
           short int y, short int z);
+        std::vector<std::pair<VoxelEntry*, int>> getDetectorsAbsorbedMap();
         size_t getTotalParticles();
 };
 

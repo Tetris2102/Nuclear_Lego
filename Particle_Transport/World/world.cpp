@@ -560,6 +560,15 @@ std::vector<ParticleGroup> World::detectorPartListAt(short int x,
     return detectorEntryPtr->getPartsAbsorbedCopy();
 }
 
+std::vector<std::pair<VoxelEntry*, int>> World::getDetectorsAbsorbedMap() {
+    assert(COLLECT_ABSORBED_PARTICLES);
+    std::vector<std::pair<VoxelEntry*, int>> map;
+    for(const auto& d : detectors) {
+        map.push_back({d, d->getNPartsAbsorbed()});
+    }
+    return map;
+}
+
 size_t World::getTotalParticles() {
     size_t size = 0;
     for(auto& p : particles) size += p.getGroupSize();

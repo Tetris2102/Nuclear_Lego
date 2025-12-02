@@ -112,7 +112,7 @@ std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::process
         // p.moveToPointAlong(t);
 
         // Detect particle if applicable
-        if(type == DETECTOR) {
+        if(type == DETECTOR && isDetectable(p.getType())) {
             particlesAbsorbed.push_back(p);
         }
         ::g_absorbs.fetch_add(1, std::memory_order_relaxed);
@@ -133,7 +133,7 @@ std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::process
         ::g_created.fetch_add(record.finalParticleGroupCount, std::memory_order_relaxed);
 
         // Detect particle if applicable
-        if(type == DETECTOR) {
+        if(type == DETECTOR && isDetectable(p.getType())) {
             particlesAbsorbed.push_back(p);
         }
         p.deactivate();  // Incident particle absorbed
@@ -317,6 +317,10 @@ std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
     return {tmin, tmax};
 }
 
+void setType(VoxelType vt) {
+    type = vt;
+}
+
 VoxelType Voxel::getType() const {
     return type;
 }
@@ -337,6 +341,24 @@ Material Voxel::getMaterial() {
     return material;
 }
 
+void setIsotopeSample(IsotopeSample is) {
+    sample = is;
+}
+
+IsotopeSample getIsotopeSample() {
+    return sample;
+}
+
+void Voxel::setPartsDetectable(std::vector<ParticleType>& detectableList) {
+    assert(type == DETECTOR);
+    particlesDetectable = detectableList;
+}
+
+std::vector<ParticleType> Voxel::getParticlesDetectable() {
+    assert(type == DETECTOR);
+    return particlesDetectable;
+}
+
 std::vector<ParticleGroup> Voxel::getPartsEmittedList(
   float timeElapsed, const Vector3& position, uint16_t partGroupSize,
   std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
@@ -349,6 +371,13 @@ std::vector<ParticleGroup> Voxel::getPartsEmittedList(
 
 std::mutex& Voxel::getMtxRef() {
     return voxelMutex;
+}
+
+bool Voxel::isDetectable(ParticleType pt) {
+    for(const auto& typeDetectable : particlesDetectable) {
+        if(pt == typeDetectable) return true;
+    }
+    return false;
 }
 
 // int Voxel::getPartsEmitted(float time,
