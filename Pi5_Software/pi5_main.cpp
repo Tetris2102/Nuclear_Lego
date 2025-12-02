@@ -141,7 +141,9 @@ int main() {
                 }
 
             } else {
+
                 cerr << "Error: Invalid multiplexer channel number" << endl;
+
             }
         }
     }
@@ -152,65 +154,65 @@ int main() {
         world.simulate(dt);
     }
 
+    array<uint8_t, 2> cubeDataToWrite;
     auto detectorsMap = world.getDetectorsAbsorbedMap();
-    muxChannelNum = y * 4 + (x+1);
-    if(muxChannelNum < 9) {
-        ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-        if(write(fd, {0b00000001 << muxChannelNum}, 1) < 1) {
-            cerr << "Error: Failed to write to multiplexer 1" << endl;
-        }
+    for(const auto& dMap : detectorsMap) {
 
-        auto detector = detectorsMap[i].first
-        uint8_t z = detector->z;
-        auto voxelPtr = world.voxelEntryAt(x, y, z).vPtr;
-        cubeDataToWrite[0] = voxelPtr->getType();
-        cubeDataToWrite[1] = voxelPtr->getMaterial();
-        uint16_t activity = detector->getNPartsAbsorbed();
-        detector->resetNPartsAbsorbed();
-        cubeDataToWrite[2] = activity & 0xFF;  // Least significant byte
-        cubeDataToWrite[3] = activity >> 8;
-        cubeDataToWrite[4] = detector->getIsotopeSample();
+        auto detectorEntry = dMap.first;
+        auto detectorPtr = detectorEntry.vPtr;
 
-        // STOPPED HERE
+        uint8_t x = detectorEntry->x;
+        uint8_t y = detectorEntry->y;
+        uint8_t z = detectorEntry->z;
 
-        ioctl(fd, I2C_SLAVE, i2c_addr+8);
-        read(fd, currentCubeData, 7);
-        recordCubeDataTo(scene, currentCubeData, x, y);
+        uint16_t activity = detectorPtr->getNPartsAbsorbed();
+        cubeDataToWrite[0] = activity & 0xFF;  // Least significant byte
+        cubeDataToWrite[1] = activity >> 8;    // Most significant byte
 
-        ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-        if(write(fd, {0b00000000}, 1) < 1) {
-            cerr << "Error: Failed to write to multiplexer 1" << endl;
-        }
-    }
+        muxChannelNum = y * 4 + (x+1);
 
-    array<uint8_t, 7> cubeDataToWrite;
-    for(uint8_t x=0; x<4; x++) {
-        for(uint8_t y=0; y<4; y++) {
-            muxChannelNum = y * 4 + (x+1);
-            if(channelNum < 9) {
-                ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-                if(write(fd, {0b00000001 << muxChannelNum}, 1) < 1) {
-                    cerr << "Error: Failed to write to multiplexer 1" << endl;
-                }
+        if(muxChannelNum < 9) {
 
-                for(uint8_t z=0; z<3; z++) {
-                    auto voxelPtr = world.voxelEntryAt(x, y, z).vPtr;
-                    cubeDataToWrite[0] = voxelPtr->getType();
-                    cubeDataToWrite[1] = voxelPtr->getMaterial();
-                    cubeDataToWrite[2] =
-                    ioctl(fd, I2C_SLAVE, i2c_addr+8);
-                    read(fd, currentCubeData, 7);
-                    recordCubeDataTo(scene, currentCubeData, x, y);
-                }
-
-                ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-                if(write(fd, {0b00000000}, 1) < 1) {
-                    cerr << "Error: Failed to write to multiplexer 1" << endl;
-                }
+            ioctl(fd, I2C_SLAVE, MUX1_ADDR);
+            if(write(fd, {0b00000001 << muxChannelNum}, 1) < 1) {
+                cerr << "Error: Failed to write to multiplexer 1" << endl;
             }
+
+            ioctl(fd, I2C_SLAVE, i2c_addr+8);
+            write(fd, cubeDataToWrite, 2);
+
+            ioctl(fd, I2C_SLAVE, MUX1_ADDR);
+            if(write(fd, {0b00000000}, 1) < 1) {
+                cerr << "Error: Failed to write to multiplexer 1" << endl;
+            }
+
+        } else if(muxChannelNum < 17) {
+
+            ioctl(fd, I2C_SLAVE, MUX2_ADDR);
+            if(write(fd, {0b00000001 << muxChannelNum}, 1) < 1) {
+                cerr << "Error: Failed to write to multiplexer 1" << endl;
+            }
+
+            uint16_t activity = detectorPtr->getNPartsAbsorbed();
+            cubeDataToWrite[0] = activity & 0xFF;  // Least significant byte
+            cubeDataToWrite[1] = activity >> 8;    // Most significant byte
+
+            ioctl(fd, I2C_SLAVE, i2c_addr+8);
+            write(fd, cubeDataToWrite, 2);
+
+            ioctl(fd, I2C_SLAVE, MUX2_ADDR);
+            if(write(fd, {0b00000000}, 1) < 1) {
+                cerr << "Error: Failed to write to multiplexer 1" << endl;
+            }
+
+        } else {
+
+            cerr << "Error: Invalid multiplexer channel number" << endl;
+
         }
     }
+
     // scan for cubes on each multiplexer channel and record their data in scene - done
     // compute activities - done
-    // write activities to cubes
+    // write activities to cubes - done
 }
