@@ -32,15 +32,15 @@ vector<ParticleType> partsListFromInt(uint8_t int) {
 }
 
 void recordCubeDataTo(vector<Voxel*>& sceneToWrite,
-  array<uint8_t, 7>& cubeData, int x, int y) {
-    uint8_t& z = cubeData[6];
+  array<uint8_t, 2>& cubeData, int x, int y) {
+    uint8_t& z = cubeData[4];
     auto voxelPtr = world.voxelEntryAt(x, y, z).vPtr;
     VoxelType voxelType = static_cast<VoxelType>(cubeData[0]);
     voxelPtr->setType(voxelType);
     voxelPtr->setMatrial(getMaterialFromInt(cubeData[1]));
     if(voxelType == DETECTOR) {
-        voxelPtr->setIsotopeSample(getSampleFromInt(cubeData[4]));
-        voxelPtr->setPartsDetectable(partsListFromInt(cubeData[5]));
+        voxelPtr->setIsotopeSample(getSampleFromInt(cubeData[2]));
+        voxelPtr->setPartsDetectable(partsListFromInt(cubeData[3]));
     }
 }
 
@@ -57,6 +57,12 @@ vector<IsotopeSample> isotopeSamples;
 World world(4, 4, 3, 4.0);
 
 int main() {
+
+
+    // ! WILL NOT WORK UNTIL getMaterials() and getIsotopeSamples()
+    // ARE IMPLEMENTED IN data.cpp !
+
+
     // TODO: maybe remove activityLeastSig and activityMostSig
     // from i2c report of attiny85 (not needed for pi5)
 
@@ -77,7 +83,6 @@ int main() {
     world.setScene(scene);
 
     unsigned char* dev = "/dev/i2c-1";
-    array<uint8_t, 7> currentCubeWrite;
 
     int fd = open(dev, O_RDWR);
     if(fd < 0) {
@@ -97,9 +102,9 @@ int main() {
         cerr << "Error: Failed to write to multiplexer 2" << endl;
     }
 
-    // currentCubeData = [voxelType, materialType, activityLeastSig,
-    // activityMostSig, sampleType, particlesDetectable, level]
-    array<uint8_t, 7> currentCubeData;
+    // currentCubeData = [voxelType, materialType,
+    // sampleType, particlesDetectable, level]
+    array<uint8_t, 5> currentCubeData;
     int muxChannelNum = 0;
     for(uint8_t x=0; x<4; x++) {
         for(uint8_t y=0; y<4; y++) {
@@ -113,7 +118,7 @@ int main() {
 
                 for(uint8_t i2c_addr=8; i2c_addr<11; i2c_addr++) {
                     ioctl(fd, I2C_SLAVE, i2c_addr);
-                    read(fd, currentCubeData, 7);
+                    read(fd, currentCubeData, 2);
                     recordCubeDataTo(scene, currentCubeData, x, y);
                 }
 
@@ -131,7 +136,7 @@ int main() {
 
                 for(uint8_t i2c_addr=8; i2c_addr<11; i2c_addr++) {
                     ioctl(fd, I2C_SLAVE, i2c_addr);
-                    read(fd, currentCubeData, 7);
+                    read(fd, currentCubeData, 2);
                     recordCubeDataTo(scene, currentCubeData, x, y);
                 }
 

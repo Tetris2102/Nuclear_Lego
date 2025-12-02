@@ -81,8 +81,8 @@ void updateParams() {
 void reportOnRequest() {
     TinyWireS.write(voxelType);
     TinyWireS.write(materialType);
-    TinyWireS.write(activity & 0xFF);  // Least significant byte first
-    TinyWireS.write(activity >> 8);    // Most significant byte then
+    // TinyWireS.write(activity & 0xFF);  // Least significant byte first
+    // TinyWireS.write(activity >> 8);    // Most significant byte then
     TinyWireS.write(sampleType);
     TinyWireS.write(particlesDetectable);
     TinyWireS.write(level);
