@@ -23,7 +23,7 @@ uint8_t level;
 void updateParams();
 void reportOnRequest();
 void receiveAndStore(uint8_t numBytes);
-uint16_t msBetweenDecays(uint16_t activity);
+uint32_t msBetweenDecays(uint16_t activity);
 void beepBuzzer();
 
 void setup() {
@@ -41,7 +41,7 @@ void setup() {
     TinyWireS.onReceive(receiveAndStore);
 }
 
-uint16_t decay_interval_ms;
+uint32_t decay_interval_ms;
 unsigned long last_beep;
 
 void loop() {
@@ -107,7 +107,7 @@ void receiveAndStore(uint8_t numBytes) {
     }
 }
 
-uint16_t msBetweenDecays(uint16_t activity) {
+uint32_t msBetweenDecays(uint16_t activity) {
     if(activity > 500) activity = 500;  // 500 decays/second max
     // Handle background radiation in case activity is small
     if(activity == 0) activity = 1;
@@ -124,7 +124,7 @@ uint16_t msBetweenDecays(uint16_t activity) {
     // First compute in uint32_t to avoid overflow behaviour
     uint32_t result = (mean_ms * ln_approx) / ((uint16_t)65535 * sensitivity);
 
-    return (uint16_t)result;
+    return result;
 }
 
 void beepBuzzer() {
