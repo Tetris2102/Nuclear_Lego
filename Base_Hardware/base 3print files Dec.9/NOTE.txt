@@ -1,0 +1,3 @@
+NOTE:
+In this folder, BaseBottom.stl and BaseLid.stl DO NOT correspond to current model base.FCStd.
+Need to be updated before printing
