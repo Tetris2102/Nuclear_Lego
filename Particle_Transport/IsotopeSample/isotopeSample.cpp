@@ -17,7 +17,7 @@ std::vector<ParticleGroup> IsotopeSample::generateParticleGroups(
         // Convert random numbers from [0; 1) to [-1; 1) range
         Vector3 mom(dist(gen) * 2 - 1, dist(gen) * 2 - 1, dist(gen) * 2 - 1);
         mom.normalize();
-        ParticleGroup p(emissionParticleGroup, emissionEnergy, originXYZ, mom);
+        ParticleGroup p(emissionParticleType, emissionEnergy, originXYZ, mom);
         p.setGroupSize(partGroupSize);
         particles.push_back(p);
     }
@@ -36,12 +36,12 @@ float IsotopeSample::getActivity() {
     return activity;
 }
 
-void IsotopeSample::setEmitParticleGroupType(ParticleType pt) {
-    emissionParticleGroup = pt;
+void IsotopeSample::setEmitParticleType(ParticleType pt) {
+    emissionParticleType = pt;
 }
 
-ParticleType IsotopeSample::getEmitParticleGroupType() {
-    return emissionParticleGroup;
+ParticleType IsotopeSample::getEmitParticleType() {
+    return emissionParticleType;
 }
 
 float IsotopeSample::getEmitEnergy() {

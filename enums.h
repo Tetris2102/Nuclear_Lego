@@ -15,11 +15,11 @@ enum MaterialType : uint8_t {
     PB_207_M,
     BE_9_M,
     U_235_M,
-    PU_238_M
+    PU_239_M
 };
 
 enum IsotopeSampleType : uint8_t {
-    NONE_S,
+    NULL_S,
     RA_226_S,  // alpha
     PU_238_S,  // alpha
     SR_90_S,   // beta

@@ -1,6 +1,8 @@
+// pi5_main.cpp
+
 #include "../Particle_Transport/World/world.cpp"
 #include "../Particle_Transport/Data/data.cpp"
-#incldue "../enums.h"
+#include "../enums.h"
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
@@ -62,9 +64,6 @@ int main() {
     // ! WILL NOT WORK UNTIL getMaterials() and getIsotopeSamples()
     // ARE IMPLEMENTED IN data.cpp !
 
-
-    // TODO: maybe remove activityLeastSig and activityMostSig
-    // from i2c report of attiny85 (not needed for pi5)
 
     // Maybe unite enums.h and data.cpp (dependent on each other)?
 

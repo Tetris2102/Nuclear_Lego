@@ -1,5 +1,5 @@
 // data.cpp
-// for data, see https://www-nds.iaea.org
+// for some of the data, see https://www-nds.iaea.org
 
 #include "../Material/material.h"
 #include "../XSTable/xstable.h"
@@ -10,11 +10,34 @@
 // Energy values used: 10 keV, 50 keV, 100 keV, 200 keV, 500 keV, 1 MeV, 2 MeV
 
 // MUST maintain order of appending according to enums.h
-inline std::vector<Material> getMaterials() {}
-// MUST maintain order of appending according to enums.h
-inline std::vector<IsotopeSample> getIsotopeSamples() {}
+inline std::vector<Material> getMaterials() {
+    std::vector<Material> materials;
 
-inline Material getAir() {
+    materials.push_back(getM_Air());
+    materials.push_back(getM_Wax());
+    materials.push_back(getM_Pb207());
+    materials.push_back(getM_Be9());
+    materials.push_back(getM_U235());
+    materials.push_back(getM_Pu239());
+
+    return materials;
+}
+
+// MUST maintain order of appending according to enums.h
+inline std::vector<IsotopeSample> getIsotopeSamples() {
+    std::vector<IsotopeSample> samples;
+
+    samples.push_back(getS_NULL());
+    samples.push_back(getS_Ra226());
+    samples.push_back(getS_Pu238());
+    samples.push_back(getS_Sr90());
+    samples.push_back(getS_Cs137());
+    samples.push_back(getS_Cf252());
+
+    return samples;
+}
+
+inline Material getM_Air() {
     // Air (atmospheric pressure, approx. 78% N2 + 21% O2)
     XSTable airTable;
 
@@ -66,11 +89,19 @@ inline Material getAir() {
     airTable.addRecordS(NEUTRON, 0.7, 0.1);
     airTable.addRecordA(NEUTRON, 0.02, 0.1);
 
-    Material air("air", 29.0, 0.0012, airTable);
+    Material air("air", 29, 0.0012, airTable);
     return air;
 }
 
-// inline Material getPb207() {
+inline Material getM_Wax() {
+    XSTable waxTable;
+
+    // add records to table
+
+    return Material{"wax", 425, 0.88, waxTable};
+}
+
+// inline Material getM_Pb207() {
 //     XSTable pb207Table;
 //
 //     // Need to add alpha and beta particle "absorption" emitting photon reaction
@@ -82,3 +113,51 @@ inline Material getAir() {
 //     Material pb207("pb207", 207.0, 11.34, pb207Table);
 //     return pb207;
 // }
+
+inline Material getM_Be9() {
+    XSTable be9Table;
+
+    // add records to table
+
+    return Material{"Be9", 9, 1.85, be9Table};
+}
+
+inline Material getM_U235() {
+    XSTable u235Table;
+
+    // add records to table
+
+    return Material{"U235", 235, 19.0, u235Table};
+}
+
+inline Material getM_Pu239() {
+    XSTable pu239Table;
+
+    // add records to table
+
+    return Material{"Pu239", 239, 19.9, pu239Table};
+}
+
+inline IsotopeSample getS_NULL() {
+    return IsotopeSample{};  // for this sample, name = "null"
+}
+
+inline IsotopeSample getS_Ra226() {
+    return IsotopeSample{"Ra226 watch dial", ALPHA, 4.87, 20000.0};
+}
+
+inline IsotopeSample getS_Pu238() {
+    return IsotopeSample{"Pu238 sample", ALPHA, 5.59, 50000.0};
+}
+
+inline IsotopeSample getS_Sr90() {
+    return IsotopeSample{"Sr90 source", BETA, 0.546, 10000.0};
+}
+
+inline IsotopeSample getS_Cs137() {
+    return IsotopeSample{"Cs137 lab sample", GAMMA, 0.662, 10000.0};
+}
+
+inline IsotopeSample getS_Cf252() {
+    return IsotopeSample{"Cf252 lab sample", NEUTRON, 2.0, 1000.0};
+}
