@@ -19,3 +19,4 @@ and neutron radiation.
 1. My parents and my wonderful Special Projects teacher
 2. https://grabcad.com/library/double-sided-fr-4-perfboards-w-m2-corners-1
 3. https://grabcad.com/library/raspberry-pi-5-model-1
+4. https://pip-assets.raspberrypi.com/categories/892-raspberry-pi-5/documents/RP-008347-DS-1-raspberry-pi-5-mechanical-drawing.pdf?disposition=inline
