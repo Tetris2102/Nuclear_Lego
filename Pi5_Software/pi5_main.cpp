@@ -60,12 +60,8 @@ World world(4, 4, 3, 4.0);
 
 int main() {
 
-
     // ! WILL NOT WORK UNTIL getMaterials() and getIsotopeSamples()
     // ARE IMPLEMENTED IN data.cpp !
-
-
-    // Maybe unite enums.h and data.cpp (dependent on each other)?
 
     // Handle system shutdown or program termination
     signal(SIGTERM, signalInterrupt);
