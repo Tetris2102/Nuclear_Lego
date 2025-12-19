@@ -9,34 +9,6 @@
 
 // Energy values used: 10 keV, 50 keV, 100 keV, 200 keV, 500 keV, 1 MeV, 2 MeV
 
-// MUST maintain order of appending according to enums.h
-inline std::vector<Material> getMaterials() {
-    std::vector<Material> materials;
-
-    materials.push_back(getM_Air());
-    materials.push_back(getM_Wax());
-    materials.push_back(getM_Pb207());
-    materials.push_back(getM_Be9());
-    materials.push_back(getM_U235());
-    materials.push_back(getM_Pu239());
-
-    return materials;
-}
-
-// MUST maintain order of appending according to enums.h
-inline std::vector<IsotopeSample> getIsotopeSamples() {
-    std::vector<IsotopeSample> samples;
-
-    samples.push_back(getS_NULL());
-    samples.push_back(getS_Ra226());
-    samples.push_back(getS_Pu238());
-    samples.push_back(getS_Sr90());
-    samples.push_back(getS_Cs137());
-    samples.push_back(getS_Cf252());
-
-    return samples;
-}
-
 inline Material getM_Air() {
     // Air (atmospheric pressure, approx. 78% N2 + 21% O2)
     XSTable airTable;
@@ -474,6 +446,20 @@ inline Material getM_Pu239() {
     return Material{"Pu239", 239, 19.9, pu239Table};
 }
 
+// MUST maintain order of appending according to enums.h
+inline std::vector<Material> getMaterials() {
+    std::vector<Material> materials;
+
+    materials.push_back(getM_Air());
+    materials.push_back(getM_Wax());
+    materials.push_back(getM_Pb207());
+    materials.push_back(getM_Be9());
+    materials.push_back(getM_U235());
+    materials.push_back(getM_Pu239());
+
+    return materials;
+}
+
 inline IsotopeSample getS_NULL() {
     return IsotopeSample{};  // for this sample, name = "null"
 }
@@ -496,4 +482,18 @@ inline IsotopeSample getS_Cs137() {
 
 inline IsotopeSample getS_Cf252() {
     return IsotopeSample{"Cf252 lab sample", NEUTRON, 2.0, 1000.0};
+}
+
+// MUST maintain order of appending according to enums.h
+inline std::vector<IsotopeSample> getIsotopeSamples() {
+    std::vector<IsotopeSample> samples;
+
+    samples.push_back(getS_NULL());
+    samples.push_back(getS_Ra226());
+    samples.push_back(getS_Pu238());
+    samples.push_back(getS_Sr90());
+    samples.push_back(getS_Cs137());
+    samples.push_back(getS_Cf252());
+
+    return samples;
 }

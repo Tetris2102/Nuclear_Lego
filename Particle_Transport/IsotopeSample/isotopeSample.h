@@ -14,7 +14,7 @@ class IsotopeSample {
     private:
         std::string name;
         float activity;
-        ParticleType emissionParticleGroup;
+        ParticleType emissionParticleType;
         float emissionEnergy;
 
         void normalizeV(Vector3 &dirXYZ);
@@ -47,8 +47,8 @@ class IsotopeSample {
         std::string getName();
         void setActivity(float a);
         float getActivity();
-        void setEmitParticleGroupType(ParticleType pt);
-        ParticleType getEmitParticleGroupType();
+        void setEmitParticleType(ParticleType pt);
+        ParticleType getEmitParticleType();
         float getEmitEnergy();
         bool isRadioactive();
 };

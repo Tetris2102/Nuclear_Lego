@@ -8,8 +8,8 @@
 // #include <iostream>
 #include <atomic>
 
-float Voxel::getTotalIntProb(const ParticleGroup& p, float travelDist) {
-    std::array<float, 3> xss = material.getEventXSs(p);
+float Voxel::getTotalIntProb(const ParticleGroup& pg, float travelDist) {
+    std::array<float, 3> xss = material.getEventXSs(pg);
     float macroXSA = material.getADensity() * xss[0];
     float macroXSS = material.getADensity() * xss[1];
     float macroXSR = material.getADensity() * xss[2];
@@ -18,8 +18,8 @@ float Voxel::getTotalIntProb(const ParticleGroup& p, float travelDist) {
     return 1.0 - std::exp(-totMacroXS * travelDist);
 }
 
-XSRecord Voxel::chooseEventAndXS(const ParticleGroup& p, std::mt19937& gen) {
-    std::array<XSRecord, 3> records = material.getEventRecords(p);
+XSRecord Voxel::chooseEventAndXS(const ParticleGroup& pg, std::mt19937& gen) {
+    std::array<XSRecord, 3> records = material.getEventRecords(pg);
     std::array<float, 3> xss = {records[0].xs, records[1].xs, records[2].xs};
     std::discrete_distribution<int> discrete_dist{xss.begin(), xss.end()};
     XSRecord recordChosen = records[discrete_dist(gen)];
@@ -70,8 +70,8 @@ void Voxel::resetGlobalStats() {
     g_created.store(0, std::memory_order_relaxed);
 }
 
-std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::processParticleGroup(
-  ParticleGroup& p, const Vector3& voxelPos, float voxelHalfSide,
+std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::processParticle(
+  ParticleGroup& pg, const Vector3& voxelPos, float voxelHalfSide,
   std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
     // Check if particle passes through Voxel
     if(!intersects(p, voxelHalfSide, voxelPos)) {
@@ -88,16 +88,16 @@ std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::process
     float prob = getTotalIntProb(p, tmax-tmin);
     if(dist(gen) > prob) {
         // Same as moveToExit(p);
-        p.moveToPointAlong(tmax);  // ParticleGroup just passes through
+        p.moveToPointAlong(tmax);  // Particle just passes through
         ::g_passes.fetch_add(1, std::memory_order_relaxed);
-        return {{}, {}};
+        return {};
     }
 
     // Choose record to use (including EventType, cross-section, etc.)
     XSRecord record = chooseEventAndXS(p, gen);
 
-    std::vector<ParticleGroup> particlesCreated;
-    std::vector<ParticleGroup> particlesAbsorbed;
+    std::vector<Particle> particlesCreated;
+    std::vector<Particle> particlesAbsorbed;
 
     if(record.event == SCATTER) {
         float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax, dist, gen);
@@ -112,28 +112,28 @@ std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::process
         // p.moveToPointAlong(t);
 
         // Detect particle if applicable
-        if(type == DETECTOR && isDetectable(p.getType())) {
+        if(type == DETECTOR) {
             particlesAbsorbed.push_back(p);
         }
         ::g_absorbs.fetch_add(1, std::memory_order_relaxed);
         p.deactivate();
     } else {
-        float particleEnergy = p.getEnergy() / record.finalParticleGroupCount;
-        ParticleGroup newP;
+        float particleEnergy = p.getEnergy() / record.finalParticleCount;
+        Particle newP;
         float intDistAlong = chooseIntDistAlong(record.xs, tmin, tmax, dist, gen);
 
         // Iterate to create particles
-        for(int i = 0; i<record.finalParticleGroupCount; i++) {
-            newP.setType(record.finalParticleGroup);
+        for(int i = 0; i<record.finalParticleCount; i++) {
+            newP.setType(record.finalParticle);
             newP.moveToPointAlong(intDistAlong);
             newP.setMomentum(getScatterMomentum(p.getMomentum(), p.getEnergy(), dist, gen));
             particlesCreated.push_back(newP);
         }
 
-        ::g_created.fetch_add(record.finalParticleGroupCount, std::memory_order_relaxed);
+        ::g_created.fetch_add(record.finalParticleCount, std::memory_order_relaxed);
 
         // Detect particle if applicable
-        if(type == DETECTOR && isDetectable(p.getType())) {
+        if(type == DETECTOR) {
             particlesAbsorbed.push_back(p);
         }
         p.deactivate();  // Incident particle absorbed
@@ -142,21 +142,21 @@ std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::process
     return std::pair(particlesCreated, particlesAbsorbed);
 }
 
-// std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::processParticleGroupThreadSafe(ParticleGroup& p,
+// std::pair<std::vector<Particle>, std::vector<Particle>> Voxel::processParticleThreadSafe(Particle& p,
 //   const Vector3& voxelPos, float voxelHalfSide,
 //   std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
 //     std::lock_guard<std::mutex> lock(voxelMutex);
-//     return processParticleGroup(p, voxelPos, voxelHalfSide, dist, gen);
+//     return processParticle(p, voxelPos, voxelHalfSide, dist, gen);
 // }
 
-void Voxel::moveToExit(ParticleGroup& p, float voxelHalfSide,
+void Voxel::moveToExit(ParticleGroup& pg, float voxelHalfSide,
   const Vector3& voxelPos) const {
     // How far the point of exit is from position along momentum Vector3
     float exitAlongMom = intersectParams(p, voxelHalfSide, voxelPos)[1];
     p.moveToPointAlong(exitAlongMom);
 }
 
-bool Voxel::intersects(const ParticleGroup& p, float voxelHalfSide,
+bool Voxel::intersects(const ParticleGroup& pg, float voxelHalfSide,
   const Vector3& position) const {
     float xmin, ymin, zmin;
     xmin = position.x - voxelHalfSide;
@@ -236,7 +236,7 @@ bool Voxel::intersects(const ParticleGroup& p, float voxelHalfSide,
     return (tmax > tmin) ? true : false;
 }
 
-std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
+std::array<float, 2> Voxel::intersectParams(const ParticleGroup& pg,
   float voxelHalfSide, const Vector3& position) const {
     float xmin, ymin, zmin;
     xmin = position.x - voxelHalfSide;
@@ -317,10 +317,6 @@ std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
     return {tmin, tmax};
 }
 
-void setType(VoxelType vt) {
-    type = vt;
-}
-
 VoxelType Voxel::getType() const {
     return type;
 }
@@ -341,53 +337,26 @@ Material Voxel::getMaterial() {
     return material;
 }
 
-void setIsotopeSample(IsotopeSample is) {
-    sample = is;
-}
-
-IsotopeSample getIsotopeSample() {
-    return sample;
-}
-
-void Voxel::setPartsDetectable(std::vector<ParticleType>& detectableList) {
-    assert(type == DETECTOR);
-    particlesDetectable = detectableList;
-}
-
-std::vector<ParticleType> Voxel::getParticlesDetectable() {
-    assert(type == DETECTOR);
-    return particlesDetectable;
-}
-
-std::vector<ParticleGroup> Voxel::getPartsEmittedList(
-  float timeElapsed, const Vector3& position, uint16_t partGroupSize,
-  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
+std::vector<ParticleGroup> Voxel::getPartsEmittedList(float timeElapsed,
+  const Vector3& position, std::uniform_real_distribution<float>& dist,
+  std::mt19937& gen) {
     assert(type == SOURCE);
-    return sample.generateParticleGroups(
-      timeElapsed, position,
-      partGroupSize, dist, gen
-    );
+    return sample.generateParticles(timeElapsed, position,
+      dist, gen);
 }
 
 std::mutex& Voxel::getMtxRef() {
     return voxelMutex;
 }
 
-bool Voxel::isDetectable(ParticleType pt) {
-    for(const auto& typeDetectable : particlesDetectable) {
-        if(pt == typeDetectable) return true;
-    }
-    return false;
-}
-
 // int Voxel::getPartsEmitted(float time,
 //   std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
 //     assert(type == SOURCE);
-//     return sample.generateParticleGroups(time, Vector3{0.0, 0.0, 0.0},
+//     return sample.generateParticles(time, Vector3{0.0, 0.0, 0.0},
 //       dist, gen).size();
 // }
 //
-// std::vector<ParticleGroup> Voxel::getPartsAbsorbedList() {
+// std::vector<Particle> Voxel::getPartsAbsorbedList() {
 //     assert(type == DETECTOR);
 //     return particlesAbsorbed;
 // }

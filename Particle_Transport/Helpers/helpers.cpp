@@ -1,4 +1,5 @@
-#include "../ParticleGroup/particleGroup.h"
+// #include "../Particle/particle.h"
+#include <cmath>
 #include <array>
 
 inline void normalizeVecXYZ(float &x, float &y, float &z) {

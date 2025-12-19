@@ -108,9 +108,10 @@ class World {
         // std::vector<std::mutex> voxelMutexes;
 
         // For multithreading
+        std::array<unsigned int, N_THREADS> threadSeeds;
         std::array<std::mt19937, N_THREADS> threadGens;
         std::array<std::uniform_real_distribution<float>, N_THREADS> threadDists;
-        // // std::array<std::vector<ParticleGroup>, N_THREADS> threadPartAccumulator;
+        std::array<std::vector<ParticleGroup>, N_THREADS> threadsNewParticles;
 
         // For single thread
         std::mt19937 gen;
@@ -137,6 +138,7 @@ class World {
         // Erase deactivated or escaped particles
         void cleanParticleGroups(std::vector<ParticleGroup>& partList);
         Vector3 getVoxelPos(const Voxel& v);
+        void cleanParticles(std::vector<ParticleGroup>& partList);
     public:
         World(short int _sizeX, short int _sizeY, short int _sizeZ,
           float _voxelSide, unsigned int seed = std::random_device{}()) :
@@ -151,7 +153,9 @@ class World {
 
             // Set RNG seeds for each thread
             for(size_t i = 0; i<N_THREADS; i++) {
-                threadGens[i] = std::mt19937(gen());
+                unsigned int rand = gen();
+                threadSeeds[i] = rand;
+                threadGens[i] = std::mt19937(rand);
                 threadDists[i] = std::uniform_real_distribution<float>(0, 1);
             }
         }
@@ -174,7 +178,7 @@ class World {
         std::vector<ParticleGroup> detectorPartListAt(short int x,
           short int y, short int z);
         std::vector<std::pair<VoxelEntry*, int>> getDetectorsAbsorbedMap();
-        size_t getTotalParticles();
+        int getTotalParticles();
 };
 
 #endif

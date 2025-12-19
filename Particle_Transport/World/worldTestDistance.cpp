@@ -11,17 +11,17 @@
 #include <memory>
 #include <utility>
 
-// TODO: make Voxel::processParticleGroup() accept pointers to RNG objects
+// TODO: make Voxel::processParticle() accept pointers to RNG objects
 // instead of having RNG instances for every object
 
-int main() {
+int main(int argc, char const *argv[]) {
 
-    Material airMat = getAir();
+    Material airMat = getM_Air();
 
     Voxel air_obj(MATTER, airMat);
     Voxel* air = &air_obj;
 
-    IsotopeSample betaSample("betaSample", BETA, 1.0, 1000000);
+    IsotopeSample betaSample("betaSample", BETA, 1.0, 10000);
     Voxel sourceInAir_obj(SOURCE, airMat, betaSample);
     Voxel* sourceInAir = &sourceInAir_obj;
 
@@ -33,9 +33,9 @@ int main() {
     unsigned int seed = 42;
     World world(x, y, z, 4.0, seed);
     std::vector<Voxel*> scene = {
-        sourceInAir, detector,  air,   air,  air,   air,   air,   air,   air,
-         detector,     air,     air,   air,  air,   air,   air,   air,   air,
-           air,        air,     air,   air,  air,   air,   air,   air,   air
+        sourceInAir, detector,  air,   detector,  air,    air, air, air, air,
+         detector,     air,   detector,  air,   detector, air, air, air, air,
+           air,        air,     air,     air,     air,    air, air, air, air
     };
     world.setScene(scene);
 
@@ -43,8 +43,8 @@ int main() {
   Voxel::resetGlobalStats();
 
     auto start = std::chrono::high_resolution_clock::now();
-    for(int i = 0; i<20; i++) {
-        world.simulate(0.05);
+    for(int i = 0; i<1; i++) {
+        world.simulate(10.0);
     }
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -58,9 +58,9 @@ int main() {
   }
 
     int partsD1 = world.detectorCountAt(1, 0, 0);
-    int partsD2 = world.detectorCountAt(0, 0, 1);
+    int partsD2 = world.detectorCountAt(0, 1, 0);
 
-    std::cout << "Simulated for 1.0 s" << std::endl;
+    std::cout << "Simulated for 10.0 s" << std::endl;
     std::cout << "Results:" << std::endl;
     std::cout << "Detector 1 (closer):" << std::endl;
     std::cout << "    " << partsD1 << " particles detected" << std::endl;
@@ -72,7 +72,7 @@ int main() {
     //     detectors[i]->getPartsAbsorbed() << std::endl;
     // }
     std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Simulating 1.0s took: " << elapsed.count() <<
+    std::cout << "Simulating 10.0s took: " << elapsed.count() <<
       " seconds" << std::endl;
 
     std::cout << "Total particle count on exit: " <<
