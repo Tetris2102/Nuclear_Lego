@@ -9,24 +9,33 @@
 #include <csignal>
 #include <array>
 #include <vector>
+#include <unistd.h>
+#include <iostream>
+#include <iomanip>
 
 #define MUX1_ADDR 0x70
 #define MUX2_ADDR 0x71
 
 using namespace std;
 
-Material getMaterialFromInt(uint8_t int) {
-    return materials[i];
+// Global variables
+int fd = -1;
+vector<Material> materials;
+vector<IsotopeSample> isotopeSamples;
+World* worldPtr = nullptr;
+
+Material getMaterialFromInt(uint8_t idx) {
+    return materials[idx];
 }
 
-Sample getSampleFromInt(uint8_t int) {
-    return isotopeSamples[i];
+IsotopeSample getSampleFromInt(uint8_t idx) {
+    return isotopeSamples[idx];
 }
 
-vector<ParticleType> partsListFromInt(uint8_t int) {
+vector<ParticleType> partsListFromInt(uint8_t val) {
     vector<ParticleType> partsList;
     for(uint8_t i=0; i<8; i++) {
-        if((1 << i) & int != 0) {
+        if(((1 << i) & val) != 0) {
             partsList.push_back(static_cast<ParticleType>(i));
         }
     }
@@ -34,66 +43,72 @@ vector<ParticleType> partsListFromInt(uint8_t int) {
 }
 
 void recordCubeDataTo(vector<Voxel*>& sceneToWrite,
-  array<uint8_t, 2>& cubeData, int x, int y) {
-    uint8_t& z = cubeData[4];
-    auto voxelPtr = world.voxelEntryAt(x, y, z).vPtr;
+  array<uint8_t, 5>& cubeData, int x, int y) {
+    uint8_t z = cubeData[4];
+    auto voxelPtr = worldPtr->voxelEntryAt(x, y, z)->vPtr;
     VoxelType voxelType = static_cast<VoxelType>(cubeData[0]);
     voxelPtr->setType(voxelType);
-    voxelPtr->setMatrial(getMaterialFromInt(cubeData[1]));
+    voxelPtr->setMaterial(getMaterialFromInt(cubeData[1]));
     if(voxelType == DETECTOR) {
         voxelPtr->setIsotopeSample(getSampleFromInt(cubeData[2]));
         voxelPtr->setPartsDetectable(partsListFromInt(cubeData[3]));
     }
 }
 
-void signalInterrupt() {
+void signalInterrupt(int sig) {
+    (void)sig;  // Suppress unused parameter warning
     cout << "Exiting program..." << endl;
-    close(fd);
+    if(fd >= 0) {
+        close(fd);
+    }
     cout << "Done." << endl;
+    exit(0);
 }
-
-vector<Material> materials;
-vector<IsotopeSample> isotopeSamples;
 
 // 4x4x3 cube world, each cube has a side of 4.0 cm
 World world(4, 4, 3, 4.0);
 
 int main() {
 
-    // ! WILL NOT WORK UNTIL getMaterials() and getIsotopeSamples()
-    // ARE IMPLEMENTED IN data.cpp !
-
     // Handle system shutdown or program termination
     signal(SIGTERM, signalInterrupt);
     signal(SIGINT, signalInterrupt);
 
-    vector<Material> materials = getMaterials();
-    vector<IsotopeSample> isotopeSamples = getIsotopeSamples();
+    materials = getMaterials();
+    isotopeSamples = getIsotopeSamples();
+    worldPtr = &world;
 
-    Material air_mat = getAir();
+    Material air_mat = getM_Air();
     Voxel air_obj(MATTER, air_mat);
     Voxel* air = &air_obj;
 
     vector<Voxel*> initialScene(48, air);
-    world.setScene(scene);
+    world.setScene(initialScene);
 
-    unsigned char* dev = "/dev/i2c-1";
+    const char* dev = "/dev/i2c-1";
 
-    int fd = open(dev, O_RDWR);
+    fd = open(dev, O_RDWR);
     if(fd < 0) {
         cerr << "Error: Failed to initialize i2c on master" << endl;
         return 1;
     }
 
     // Deselect all channels at MUX 1
-    ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-    if(write(fd, {0b00000000}, 1) < 1) {
+    unsigned char muxData = 0b00000000;
+    if(ioctl(fd, I2C_SLAVE, MUX1_ADDR) < 0) {
+        cerr << "Error: Failed to set MUX1 slave address" << endl;
+        return 1;
+    }
+    if(write(fd, &muxData, 1) < 1) {
         cerr << "Error: Failed to write to multiplexer 1" << endl;
     }
 
     // Deselect all channels at MUX 2
-    ioctl(fd, I2C_SLAVE, MUX2_ADDR);
-    if(write(fd, {0b00000000}, 1) < 1) {
+    if(ioctl(fd, I2C_SLAVE, MUX2_ADDR) < 0) {
+        cerr << "Error: Failed to set MUX2 slave address" << endl;
+        return 1;
+    }
+    if(write(fd, &muxData, 1) < 1) {
         cerr << "Error: Failed to write to multiplexer 2" << endl;
     }
 
@@ -103,46 +118,91 @@ int main() {
     int muxChannelNum = 0;
     for(uint8_t x=0; x<4; x++) {
         for(uint8_t y=0; y<4; y++) {
-            muxChannelNum = y * 4 + (x+1);
+            muxChannelNum = y * 4 + (x + 1);
             if(muxChannelNum < 9) {
 
-                ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-                if(write(fd, {0b00000001 << muxChannelNum}, 1) < 1) {
-                    cerr << "Error: Failed to write to multiplexer 1" << endl;
+                // Select MUX1 channel (muxChannelNum 1-8 maps to mux channels 0-7)
+                if(ioctl(fd, I2C_SLAVE, MUX1_ADDR) < 0) {
+                    cerr << "Error: Failed to set MUX1 slave address" << endl;
+                    continue;
                 }
+                muxData = 1 << muxChannelNum;
+                if(write(fd, &muxData, 1) < 1) {
+                    cerr << "Error: Failed to write to MUX1" << endl;
+                    continue;
+                }
+                usleep(1000);  // Small delay for mux to settle
 
+                // Read from each level (addresses 8, 9, 10)
                 for(uint8_t i2c_addr=8; i2c_addr<11; i2c_addr++) {
-                    ioctl(fd, I2C_SLAVE, i2c_addr);
-                    read(fd, currentCubeData, 2);
-                    recordCubeDataTo(scene, currentCubeData, x, y);
+                    if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) {
+                        cerr << "Error: Failed to set slave address 0x" 
+                             << hex << (int)i2c_addr << endl;
+                        continue;
+                    }
+                    ssize_t bytesRead = read(fd, currentCubeData.data(), 5);
+                    if(bytesRead == 5) {
+                        recordCubeDataTo(initialScene, currentCubeData, x, y);
+                    } else if(bytesRead > 0) {
+                        cerr << "Warning: Only read " << bytesRead 
+                             << " bytes from 0x" << hex << (int)i2c_addr << endl;
+                    }
                 }
 
-                ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-                if(write(fd, {0b00000000}, 1) < 1) {
-                    cerr << "Error: Failed to write to multiplexer 1" << endl;
+                // Deselect MUX1
+                if(ioctl(fd, I2C_SLAVE, MUX1_ADDR) < 0) {
+                    cerr << "Error: Failed to set MUX1 slave address" << endl;
+                    continue;
+                }
+                muxData = 0b00000000;
+                if(write(fd, &muxData, 1) < 1) {
+                    cerr << "Error: Failed to write to MUX1" << endl;
                 }
 
             } else if (muxChannelNum < 17) {
 
-                ioctl(fd, I2C_SLAVE, MUX2_ADDR);
-                if(write(fd, {0b00000001 << (muxChannelNum % 8)}, 1) < 1) {
-                    cerr << "Error: Failed to write to multiplexer 1" << endl;
+                // Select MUX2 channel
+                if(ioctl(fd, I2C_SLAVE, MUX2_ADDR) < 0) {
+                    cerr << "Error: Failed to set MUX2 slave address" << endl;
+                    continue;
                 }
+                muxData = 1 << (muxChannelNum - 8);
+                if(write(fd, &muxData, 1) < 1) {
+                    cerr << "Error: Failed to write to MUX2" << endl;
+                    continue;
+                }
+                usleep(1000);  // Small delay for mux to settle
 
+                // Read from each level (addresses 8, 9, 10)
                 for(uint8_t i2c_addr=8; i2c_addr<11; i2c_addr++) {
-                    ioctl(fd, I2C_SLAVE, i2c_addr);
-                    read(fd, currentCubeData, 2);
-                    recordCubeDataTo(scene, currentCubeData, x, y);
+                    if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) {
+                        cerr << "Error: Failed to set slave address 0x" 
+                             << hex << (int)i2c_addr << endl;
+                        continue;
+                    }
+                    ssize_t bytesRead = read(fd, currentCubeData.data(), 5);
+                    if(bytesRead == 5) {
+                        recordCubeDataTo(initialScene, currentCubeData, x, y);
+                    } else if(bytesRead > 0) {
+                        cerr << "Warning: Only read " << bytesRead 
+                             << " bytes from 0x" << hex << (int)i2c_addr << endl;
+                    }
                 }
 
-                ioctl(fd, I2C_SLAVE, MUX2_ADDR);
-                if(write(fd, {0b00000000}, 1) < 1) {
-                    cerr << "Error: Failed to write to multiplexer 1" << endl;
+                // Deselect MUX2
+                if(ioctl(fd, I2C_SLAVE, MUX2_ADDR) < 0) {
+                    cerr << "Error: Failed to set MUX2 slave address" << endl;
+                    continue;
+                }
+                muxData = 0b00000000;
+                if(write(fd, &muxData, 1) < 1) {
+                    cerr << "Error: Failed to write to MUX2" << endl;
                 }
 
             } else {
 
-                cerr << "Error: Invalid multiplexer channel number" << endl;
+                cerr << "Error: Invalid multiplexer channel number: " 
+                     << muxChannelNum << endl;
 
             }
         }
@@ -159,7 +219,7 @@ int main() {
     for(const auto& dMap : detectorsMap) {
 
         auto detectorEntry = dMap.first;
-        auto detectorPtr = detectorEntry.vPtr;
+        auto detectorPtr = detectorEntry->vPtr;
 
         uint8_t x = detectorEntry->x;
         uint8_t y = detectorEntry->y;
@@ -170,47 +230,86 @@ int main() {
         cubeDataToWrite[1] = activity >> 8;    // Most significant byte
 
         muxChannelNum = y * 4 + (x+1);
+        uint8_t i2c_addr = 8 + z;   // Address based on level (z): 8, 9, or 10
 
         if(muxChannelNum < 9) {
 
-            ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-            if(write(fd, {0b00000001 << muxChannelNum}, 1) < 1) {
-                cerr << "Error: Failed to write to multiplexer 1" << endl;
+            // Select MUX1 channel (muxChannelNum 1-8 maps to mux channels 0-7)
+            if(ioctl(fd, I2C_SLAVE, MUX1_ADDR) < 0) {
+                cerr << "Error: Failed to set MUX1 slave address" << endl;
+                continue;
+            }
+            muxData = 1 << muxChannelNum;
+            if(write(fd, &muxData, 1) < 1) {
+                cerr << "Error: Failed to write to MUX1" << endl;
+                continue;
+            }
+            usleep(1000);  // Small delay for mux to settle
+
+            // Write activity to the specific level
+            if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) {
+                cerr << "Error: Failed to set slave address 0x" 
+                     << hex << (int)i2c_addr << endl;
+                continue;
+            }
+            if(write(fd, cubeDataToWrite.data(), 2) < 2) {
+                cerr << "Error: Failed to write activity data" << endl;
             }
 
-            ioctl(fd, I2C_SLAVE, i2c_addr+8);
-            write(fd, cubeDataToWrite, 2);
-
-            ioctl(fd, I2C_SLAVE, MUX1_ADDR);
-            if(write(fd, {0b00000000}, 1) < 1) {
-                cerr << "Error: Failed to write to multiplexer 1" << endl;
+            // Deselect MUX1
+            if(ioctl(fd, I2C_SLAVE, MUX1_ADDR) < 0) {
+                cerr << "Error: Failed to set MUX1 slave address" << endl;
+                continue;
+            }
+            muxData = 0b00000000;
+            if(write(fd, &muxData, 1) < 1) {
+                cerr << "Error: Failed to write to MUX1" << endl;
             }
 
         } else if(muxChannelNum < 17) {
 
-            ioctl(fd, I2C_SLAVE, MUX2_ADDR);
-            if(write(fd, {0b00000001 << muxChannelNum}, 1) < 1) {
-                cerr << "Error: Failed to write to multiplexer 1" << endl;
+            // Select MUX2 channel
+            if(ioctl(fd, I2C_SLAVE, MUX2_ADDR) < 0) {
+                cerr << "Error: Failed to set MUX2 slave address" << endl;
+                continue;
+            }
+            muxData = 1 << (muxChannelNum - 8);
+            if(write(fd, &muxData, 1) < 1) {
+                cerr << "Error: Failed to write to MUX2" << endl;
+                continue;
+            }
+            usleep(1000);  // Small delay for mux to settle
+
+            // Write activity to the specific level
+            if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) {
+                cerr << "Error: Failed to set slave address 0x" 
+                     << hex << (int)i2c_addr << endl;
+                continue;
+            }
+            if(write(fd, cubeDataToWrite.data(), 2) < 2) {
+                cerr << "Error: Failed to write activity data" << endl;
             }
 
-            uint16_t activity = detectorPtr->getNPartsAbsorbed();
-            cubeDataToWrite[0] = activity & 0xFF;  // Least significant byte
-            cubeDataToWrite[1] = activity >> 8;    // Most significant byte
-
-            ioctl(fd, I2C_SLAVE, i2c_addr+8);
-            write(fd, cubeDataToWrite, 2);
-
-            ioctl(fd, I2C_SLAVE, MUX2_ADDR);
-            if(write(fd, {0b00000000}, 1) < 1) {
-                cerr << "Error: Failed to write to multiplexer 1" << endl;
+            // Deselect MUX2
+            if(ioctl(fd, I2C_SLAVE, MUX2_ADDR) < 0) {
+                cerr << "Error: Failed to set MUX2 slave address" << endl;
+                continue;
+            }
+            muxData = 0b00000000;
+            if(write(fd, &muxData, 1) < 1) {
+                cerr << "Error: Failed to write to MUX2" << endl;
             }
 
         } else {
 
-            cerr << "Error: Invalid multiplexer channel number" << endl;
+            cerr << "Error: Invalid multiplexer channel number: " 
+                 << muxChannelNum << endl;
 
         }
     }
+
+    close(fd);
+    return 0;
 
     // scan for cubes on each multiplexer channel and record their data in scene - done
     // compute activities - done
