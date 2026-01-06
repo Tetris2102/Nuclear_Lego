@@ -10,5 +10,5 @@ g++-15 \
 ../Voxel/voxel.cpp \
 ../World/world.cpp \
 worldTestDistance.cpp \
--O2 -march=native -fopenmp \
--ffast-math -o worldTestDistance
+-O2 -fopenmp \
+-o worldTestDistance

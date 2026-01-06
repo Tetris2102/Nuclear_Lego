@@ -14,23 +14,22 @@ class IsotopeSample {
     private:
         std::string name;
         float activity;
-        ParticleType emissionParticleType;
+        ParticleType emissionParticleGroup;
         float emissionEnergy;
 
         void normalizeV(Vector3 &dirXYZ);
     public:
         // For radioactive samples
-        IsotopeSample(std::string _name, ParticleType _emissionParticleType,
+        IsotopeSample(std::string _name, ParticleType _emissionParticleGroup,
           float _emissionEnergy, float _activity = 0.0) {
             name = _name;
             activity = _activity;
-            emissionParticleType = _emissionParticleType;
+            emissionParticleGroup = _emissionParticleGroup;
             emissionEnergy = _emissionEnergy;
         }
 
         // For stable samples
         IsotopeSample() {
-            name = "null";
             activity = 0.0;
         }
 
@@ -47,8 +46,8 @@ class IsotopeSample {
         std::string getName();
         void setActivity(float a);
         float getActivity();
-        void setEmitParticleType(ParticleType pt);
-        ParticleType getEmitParticleType();
+        void setEmitParticleGroupType(ParticleType pt);
+        ParticleType getEmitParticleGroupType();
         float getEmitEnergy();
         bool isRadioactive();
 };
