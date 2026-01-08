@@ -1,0 +1,26 @@
+The Problem: Boundary Edge Case in intersects() When Particles Are Exactly at Voxel Boundaries
+What's happening:
+Coordinate system: With voxelSide = 4.0 and voxelHalfSide = 2.0:
+Voxel centers are at (x+1) * voxelHalfSide (e.g., voxel 0 center at 2.0, voxel 1 center at 6.0)
+Voxel boundaries are at multiples of voxelSide (0.0, 4.0, 8.0, ...)
+When a particle exits a voxel: moveToExit() places it exactly at a boundary (e.g., x = 4.0).
+When checking the next voxel: nextVoxelPosVec() finds the next voxel and returns its center. intersects() then checks if the particle's ray intersects that voxel.
+The critical bug: In intersects() (line 233), when the particle is exactly at a boundary:
+If the particle is at x = xmax (the right boundary) of voxel A and moving right (+x), it's also at x = xmin (the left boundary) of voxel B
+The calculation (xmin - x) / dx gives (4.0 - 4.0) / dx = 0
+Similarly, (xmax - x) / dx might give a very small positive value or exactly 0
+Due to floating-point precision, tmax might equal tmin (both ≈ 0)
+The check tmax > tmin (line 236) fails, so intersects() returns false
+Why adjacent detectors work: When source and detector share a vertex:
+The particle might be slightly inside the detector voxel (not exactly at boundary)
+Or the boundary calculation happens to work due to the specific geometry
+The intersection check succeeds
+Why non-adjacent detectors fail: When there's an air voxel in between:
+Particle exits source → boundary check fails for air voxel → marked as "pass"
+Particle exits air voxel → boundary check fails for detector voxel → marked as "pass"
+Never actually processes interactions in either voxel
+The root cause: intersects() doesn't handle the case where the particle is exactly at a voxel boundary. The ray-box intersection algorithm assumes the particle is approaching the voxel, not already at its boundary.
+The fix needed: Modify intersects() to:
+Check if the particle's current position is within the voxel bounds first (if so, return true immediately)
+Handle the boundary case where tmin ≈ tmax ≈ 0 by checking if the particle is at the boundary and moving into the voxel
+Use a small epsilon tolerance for floating-point comparisons at boundaries

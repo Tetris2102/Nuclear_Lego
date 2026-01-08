@@ -151,8 +151,9 @@ std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::process
 
 void Voxel::moveToExit(ParticleGroup& p, float voxelHalfSide,
   const Vector3& voxelPos) const {
+    const float epsilon = 1e-5f;  // Move the particle slightly inside the voxel
     // How far the point of exit is from position along momentum Vector3
-    float exitAlongMom = intersectParams(p, voxelHalfSide, voxelPos)[1];
+    float exitAlongMom = intersectParams(p, voxelHalfSide, voxelPos)[1] + epsilon;
     p.moveToPointAlong(exitAlongMom);
 }
 
@@ -201,7 +202,7 @@ bool Voxel::intersects(const ParticleGroup& p, float voxelHalfSide,
         }
     }
 
-    float t0x, t1x, t0y, t1y, t0z, t1z;
+    float t0x, t0y, t0z, t1x, t1y, t1z;
 
     if(dx > 0) {
         t0x = (xmin - x) / dx;
@@ -233,7 +234,10 @@ bool Voxel::intersects(const ParticleGroup& p, float voxelHalfSide,
     float tmin = std::max({t0x, t0y, t0z, 0.0f});
     float tmax = std::min({t1x, t1y, t1z});
 
-    return (tmax > tmin) ? true : false;
+    // Add boundary margin to avoid errors
+    const float epsilon = 1e-5f;
+
+    return (tmax >= (tmin - epsilon)) ? true : false;
 }
 
 std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
@@ -247,6 +251,18 @@ std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
     xmax = position.x + voxelHalfSide;
     ymax = position.y + voxelHalfSide;
     zmax = position.z + voxelHalfSide;
+
+    // bool isInsideX = (x >= xmin && x <= xmax);
+    // bool isInsideY = (y >= ymin && y <= ymax);
+    // bool isInsideZ = (z >= zmin && z <= zmax);
+
+    // if(x >= xmin && x <= xmax) {
+    //     if(y >= ymin && y <= ymax) {
+    //         if(z >= zmin && z <= zmax) {
+    //             return
+    //         }
+    //     }
+    // }
 
     float x = p.getX();
     float y = p.getY();
@@ -264,7 +280,7 @@ std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
     ignoreY = (dy == 0);
     ignoreZ = (dz == 0);
 
-    float t0x, t1x, t0y, t1y, t0z, t1z;
+    float t0x, t0y, t0z, t1x, t1y, t1z;
 
     if(dx > 0) {
         t0x = (xmin - x) / dx;

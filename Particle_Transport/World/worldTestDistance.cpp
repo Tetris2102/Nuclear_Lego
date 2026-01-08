@@ -17,27 +17,41 @@
 int main() {
 
     Material airMat = getM_Air();
+    Material leadMat = getM_Pb207();
 
     Voxel air_obj(MATTER, airMat);
     Voxel* air = &air_obj;
 
-    IsotopeSample betaSample("betaSample", BETA, 1.0, 1000000);
+    IsotopeSample betaSample("betaSample", ALPHA, 1.0, 2000000);
     Voxel sourceInAir_obj(SOURCE, airMat, betaSample);
     Voxel* sourceInAir = &sourceInAir_obj;
 
-    Voxel detector_obj(DETECTOR, airMat);
-    Voxel* detector = &detector_obj;
+    Voxel detector1(DETECTOR, leadMat);
+    Voxel detector2(DETECTOR, leadMat);
 
     const short int x = 3, y = 3, z = 3;
 
     unsigned int seed = 42;
     World world(x, y, z, 4.0, seed);
     std::vector<Voxel*> scene = {
-        sourceInAir, detector,  air,   air,  air,   air,   air,   air,   air,
-         detector,     air,     air,   air,  air,   air,   air,   air,   air,
-           air,        air,     air,   air,  air,   air,   air,   air,   air
+    sourceInAir,   air,     &detector1,
+        air,       air,       air,
+        air,       air,       air,
+
+        air,       air,       air,
+        air,       air,       air,
+        air,       air,       air,
+
+     &detector2,   air,       air,
+        air,       air,       air,
+        air,       air,       air
     };
     world.setScene(scene);
+
+
+  std::cout << "Detector pointers:" << std::endl;
+  std::cout << world.voxelAt(2, 0, 0) << std::endl;
+  std::cout << world.voxelAt(0, 0, 2) << std::endl;
 
   // reset global voxel instrumentation counters so we get fresh numbers for this run
   Voxel::resetGlobalStats();
@@ -57,8 +71,8 @@ int main() {
           << " created=" << stats.created << std::endl;
   }
 
-    int partsD1 = world.detectorCountAt(1, 0, 0);
-    int partsD2 = world.detectorCountAt(0, 0, 1);
+    int partsD1 = world.detectorCountAt(2, 0, 0);
+    int partsD2 = world.detectorCountAt(0, 0, 2);
 
     std::cout << "Simulated for 1.0 s" << std::endl;
     std::cout << "Results:" << std::endl;
