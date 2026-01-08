@@ -19,22 +19,20 @@ inline Material getM_Air() {
     airTable.addRecordR(GAMMA, GAMMA, 1, 0.0, 0.0);
     airTable.addRecordR(NEUTRON, NEUTRON, 1, 0.0, 0.0);
 
-    // airTable.addRecordS(ALPHA, 1000.0, 0.01);
-    // airTable.addRecordA(ALPHA, 100.0, 0.01);
-    // airTable.addRecordS(ALPHA, 200.0, 0.05);
-    // airTable.addRecordA(ALPHA, 30.0, 0.05);
-    // airTable.addRecordS(ALPHA, 80.0, 0.1);
-    // airTable.addRecordA(ALPHA, 10.0, 0.1);
-    // airTable.addRecordS(ALPHA, 30.0, 0.2);
-    // airTable.addRecordA(ALPHA, 5.0, 0.2);
-    // airTable.addRecordS(ALPHA, 10.0, 0.5);
-    // airTable.addRecordA(ALPHA, 2.0, 0.5);
-    // airTable.addRecordS(ALPHA, 5.0, 1.0);
-    // airTable.addRecordA(ALPHA, 1.0, 1.0);
-    // airTable.addRecordS(ALPHA, 2.0, 2.0);
-    // airTable.addRecordA(ALPHA, 0.5, 2.0);
-    airTable.addRecordS(ALPHA, 0.0, 2.0);
-    airTable.addRecordA(ALPHA, 1000.0, 2.0);
+    airTable.addRecordS(ALPHA, 1000.0, 0.01);
+    airTable.addRecordA(ALPHA, 100.0, 0.01);
+    airTable.addRecordS(ALPHA, 200.0, 0.05);
+    airTable.addRecordA(ALPHA, 30.0, 0.05);
+    airTable.addRecordS(ALPHA, 80.0, 0.1);
+    airTable.addRecordA(ALPHA, 10.0, 0.1);
+    airTable.addRecordS(ALPHA, 30.0, 0.2);
+    airTable.addRecordA(ALPHA, 5.0, 0.2);
+    airTable.addRecordS(ALPHA, 10.0, 0.5);
+    airTable.addRecordA(ALPHA, 2.0, 0.5);
+    airTable.addRecordS(ALPHA, 5.0, 1.0);
+    airTable.addRecordA(ALPHA, 1.0, 1.0);
+    airTable.addRecordS(ALPHA, 2.0, 2.0);
+    airTable.addRecordA(ALPHA, 0.5, 2.0);
 
     airTable.addRecordS(BETA, 100.0, 0.01);
     airTable.addRecordA(BETA, 20.0, 0.01);

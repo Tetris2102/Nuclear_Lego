@@ -158,10 +158,6 @@ void World::updateLists() {
 //                               // float absolute positions
 // }
 
-
-// !! This variant of nextVoxelPosVec() returns coordinates of the NEXT voxel
-// the particle is going to enter after leaving the current voxel !!
-
 Vector3 World::nextVoxelPosVec(ParticleGroup& p) {
     Vector3 pos = p.getPosition();
     Vector3 dir = p.getMomentum();
@@ -223,16 +219,6 @@ Vector3 World::nextVoxelPosVec(ParticleGroup& p) {
     // Convert integer voxel indices into world-space coordinates (voxel center)
     return getVoxelCoordVec3(x, y, z);
 }
-
-// Returns coordinates of the center of the CURRENT voxel the particle is in
-// Vector3 World::nextVoxelPosVec(ParticleGroup& p) {
-//     Vector3 pos = p.getPosition();
-//     short int x, y, z;
-//     x = std::floor(pos.x / voxelSide);
-//     y = std::floor(pos.y / voxelSide);
-//     z = std::floor(pos.z / voxelSide);
-//     return getVoxelCoordVec3(x, y, z);
-// }
 
 void World::addParticlesEmitted(float time, std::mt19937& gen,
   std::uniform_real_distribution<float>& dist) {
