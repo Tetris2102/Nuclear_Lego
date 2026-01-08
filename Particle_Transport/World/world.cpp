@@ -70,9 +70,9 @@ Vector3 World::getVoxelCoordVec3(int index) {
 
 Vector3 World::getVoxelCoordVec3(short int x, short int y, short int z) {
     return Vector3{
-        (x+1) * voxelHalfSide,
-        (y+1) * voxelHalfSide,
-        (z+1) * voxelHalfSide
+        x * voxelSide + voxelHalfSide,
+        y * voxelSide + voxelHalfSide,
+        z * voxelSide + voxelHalfSide
     };
 }
 
@@ -315,9 +315,10 @@ VoxelEntry* World::voxelEntryAtPos(const Vector3& pos) {
     // Use floor(pos / voxelSide) to map a world position to voxel index.
     // This assumes the world origin (0,0,0) corresponds to the minimum corner
     // of voxel (0,0,0). If your voxel centers are offset, adjust accordingly.
-    int ix = static_cast<int>(std::floor(pos.x / voxelSide));
-    int iy = static_cast<int>(std::floor(pos.y / voxelSide));
-    int iz = static_cast<int>(std::floor(pos.z / voxelSide));
+    const float epsilon = 1e-6f;
+    int ix = static_cast<int>(std::floor((pos.x + epsilon) / voxelSide));
+    int iy = static_cast<int>(std::floor((pos.y + epsilon) / voxelSide));
+    int iz = static_cast<int>(std::floor((pos.z + epsilon) / voxelSide));
 
     if(ix < 0 || ix >= sizeX || iy < 0 || iy >= sizeY || iz < 0 || iz >= sizeZ) {
         return nullptr;

@@ -179,22 +179,24 @@ bool Voxel::intersects(const ParticleGroup& p, float voxelHalfSide,
     // Normalize magnitude
     normalizeVecXYZ(dx, dy, dz);
 
+    const float epsilon = 1e-6f;  // For tolerance
+
     if(dx == 0) {
-        if(x <= xmin || x >= xmax) {
+        if(x < xmin - epsilon || x > xmax + epsilon) {
             return false;
         } else {
             return true;
         }
     }
     if(dy == 0) {
-        if(y <= ymin || y >= ymax) {
+        if(y < ymin - epsilon || y > ymax + epsilon) {
             return false;
         } else {
             return true;
         }
     }
     if(dz == 0) {
-        if(z <= zmin || z >= zmax) {
+        if(z < zmin - epsilon || z > zmax + epsilon) {
             return false;
         } else {
             return true;
@@ -233,7 +235,7 @@ bool Voxel::intersects(const ParticleGroup& p, float voxelHalfSide,
     float tmin = std::max({t0x, t0y, t0z, 0.0f});
     float tmax = std::min({t1x, t1y, t1z});
 
-    return (tmax > tmin) ? true : false;
+    return ((tmax + epsilon) > tmin) ? true : false;
 }
 
 std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
@@ -313,6 +315,9 @@ std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
 
     float tmin = std::max(*tminIt, 0.0f);
     float tmax = *tmaxIt;
+
+    const float epsilon = 1e-6f;  // For tolerance
+    tmax += epsilon;  // Always a little further than actual intersection point
 
     return {tmin, tmax};
 }

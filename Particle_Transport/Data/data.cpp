@@ -31,8 +31,6 @@ inline Material getM_Air() {
     airTable.addRecordA(ALPHA, 2.0, 0.5);
     airTable.addRecordS(ALPHA, 5.0, 1.0);
     airTable.addRecordA(ALPHA, 1.0, 1.0);
-    airTable.addRecordS(ALPHA, 2.0, 2.0);
-    airTable.addRecordA(ALPHA, 0.5, 2.0);
 
     airTable.addRecordS(BETA, 100.0, 0.01);
     airTable.addRecordA(BETA, 20.0, 0.01);
@@ -156,7 +154,6 @@ inline Material getM_Pb207() {
     pb207Table.addRecordS(ALPHA, 25.0, 1.0);
     pb207Table.addRecordA(ALPHA, 5.0, 1.0);
     pb207Table.addRecordS(ALPHA, 10.0, 2.0);
-    pb207Table.addRecordA(ALPHA, 2.0, 2.0);
 
     // Beta particles - high stopping power
     pb207Table.addRecordS(BETA, 500.0, 0.01);

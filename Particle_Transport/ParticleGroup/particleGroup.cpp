@@ -1,6 +1,7 @@
 // particle.cpp
 
 #include "particleGroup.h"
+#include "../Helpers/helpers.cpp"
 
 void ParticleGroup::setEnergy(float newE) {
     E = newE;
@@ -28,6 +29,7 @@ bool ParticleGroup::isActive() const {
 
 void ParticleGroup::setMomentum(Vector3 newMom) {
     mom = newMom;
+    normalizeVec3(mom);
 }
 
 Vector3 ParticleGroup::getMomentum() const {
@@ -76,9 +78,11 @@ uint16_t ParticleGroup::getGroupSize() {
 
 Vector3 ParticleGroup::pointAlongVec(float t) const {
     Vector3 pointAlongVec;
+
     pointAlongVec.x = position.x + t * mom.x;
     pointAlongVec.y = position.y + t * mom.y;
     pointAlongVec.z = position.z + t * mom.z;
+
     return pointAlongVec;
 }
 
