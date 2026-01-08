@@ -118,8 +118,8 @@ int main() {
     int muxChannelNum = 0;
     for(uint8_t x=0; x<4; x++) {
         for(uint8_t y=0; y<4; y++) {
-            muxChannelNum = y * 4 + (x + 1);
-            if(muxChannelNum < 9) {
+            muxChannelNum = y * 4 + (x + 1) - 1;  // Channels numbered 0 to 15
+            if(muxChannelNum < 8) {
 
                 // Select MUX1 channel (muxChannelNum 1-8 maps to mux channels 0-7)
                 if(ioctl(fd, I2C_SLAVE, MUX1_ADDR) < 0) {
@@ -135,12 +135,8 @@ int main() {
 
                 // Read from each level (addresses 8, 9, 10)
                 for(uint8_t i2c_addr=8; i2c_addr<11; i2c_addr++) {
-                    if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) {
-                        cerr << "Error: Failed to set slave address 0x" 
-                             << hex << (int)i2c_addr << endl;
-                        continue;
-                    }
-                    ssize_t bytesRead = read(fd, currentCubeData.data(), 5);
+                    if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) continue;
+                    int bytesRead = read(fd, currentCubeData.data(), 5);
                     if(bytesRead == 5) {
                         recordCubeDataTo(initialScene, currentCubeData, x, y);
                     } else if(bytesRead > 0) {
@@ -159,7 +155,7 @@ int main() {
                     cerr << "Error: Failed to write to MUX1" << endl;
                 }
 
-            } else if (muxChannelNum < 17) {
+            } else if (muxChannelNum < 16) {
 
                 // Select MUX2 channel
                 if(ioctl(fd, I2C_SLAVE, MUX2_ADDR) < 0) {
@@ -175,12 +171,8 @@ int main() {
 
                 // Read from each level (addresses 8, 9, 10)
                 for(uint8_t i2c_addr=8; i2c_addr<11; i2c_addr++) {
-                    if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) {
-                        cerr << "Error: Failed to set slave address 0x" 
-                             << hex << (int)i2c_addr << endl;
-                        continue;
-                    }
-                    ssize_t bytesRead = read(fd, currentCubeData.data(), 5);
+                    if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) continue;
+                    int bytesRead = read(fd, currentCubeData.data(), 5);
                     if(bytesRead == 5) {
                         recordCubeDataTo(initialScene, currentCubeData, x, y);
                     } else if(bytesRead > 0) {
@@ -202,7 +194,7 @@ int main() {
             } else {
 
                 cerr << "Error: Invalid multiplexer channel number: " 
-                     << muxChannelNum << endl;
+                    << muxChannelNum << endl;
 
             }
         }
@@ -303,7 +295,7 @@ int main() {
         } else {
 
             cerr << "Error: Invalid multiplexer channel number: " 
-                 << muxChannelNum << endl;
+                << muxChannelNum << endl;
 
         }
     }
