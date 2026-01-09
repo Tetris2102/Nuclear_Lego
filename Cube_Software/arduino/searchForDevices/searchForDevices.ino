@@ -26,6 +26,8 @@ bool detected = false;
 void loop() {
   Serial.println("Searching for devices...");
 
+  selectMuxChannel(0x71, 0);
+
   for(uint8_t i = 0; i<127; i++) {
       Wire.beginTransmission(i);
       uint8_t error = Wire.endTransmission();

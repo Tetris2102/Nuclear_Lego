@@ -8,16 +8,16 @@
 //     return eventType;
 // }
 //
-// ParticleType XSTable::getIncParticleType() {
-//     return incParticle;
+// ParticleType XSTable::getIncParticleGroupType() {
+//     return incParticleGroup;
 // }
 //
-// ParticleType XSTable::getFinalParticleType() {
-//     return finalParticle;
+// ParticleType XSTable::getFinalParticleGroupType() {
+//     return finalParticleGroup;
 // }
 //
-// int XSTable::getFinalParticles() {
-//     return finalParticleCount;
+// int XSTable::getFinalParticleGroups() {
+//     return finalParticleGroupCount;
 // }
 //
 // void XSTable::addXS(float energy, float xs) {
@@ -57,17 +57,17 @@ void XSTable::addRecordR(ParticleType incPT, ParticleType finPT,
     records.push_back(r);
 }
 
-XSRecord XSTable::findRecord(EventType et, const Particle& incP) const {
+XSRecord XSTable::findRecord(EventType et, const ParticleGroup& incP) const {
     std::vector<XSRecord> particleMatch;
     ParticleType type = incP.getType();
     float energy = incP.getEnergy();
 
     for(const XSRecord &r : records) {
-        if(r.incParticle == type) particleMatch.push_back(r);
+        if(r.incParticleGroup == type) particleMatch.push_back(r);
     }
 
     // If no records found, return 0.0 cross-section if none found
-    // Particle remains the same
+    // ParticleGroup remains the same
     if(particleMatch.size() == 0) {
         return XSRecord{et, type, type, 1, 0.0, energy};
     }
@@ -84,7 +84,7 @@ XSRecord XSTable::findRecord(EventType et, const Particle& incP) const {
 }
 
 // Find the best fitting record for each EventType of a given particle
-std::array<XSRecord, 3> XSTable::findEventRecords(const Particle& incP) {
+std::array<XSRecord, 3> XSTable::findEventRecords(const ParticleGroup& incP) {
     std::array<XSRecord, 3> eventRecords;
     // Used to loop through EventType
     // Same order as in EventType definition
@@ -97,13 +97,13 @@ std::array<XSRecord, 3> XSTable::findEventRecords(const Particle& incP) {
 
         // Match by incident particle and event type
         for(const XSRecord &r : records) {
-            if(r.incParticle == type && r.event == events[i]) {
+            if(r.incParticleGroup == type && r.event == events[i]) {
                 firstMatches.push_back(r);
             }
         }
 
         // If no records found, return 0.0 cross-section if none found
-        // Particle remains the same
+        // ParticleGroup remains the same
         if(firstMatches.size() == 0) {
             eventRecords[i] = XSRecord{events[i], type, type, 0, 0.0, energy};
             continue;

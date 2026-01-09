@@ -4,7 +4,7 @@
 #define WORLD_H
 
 #include "../Voxel/voxel.h"
-#include "../Particle/particle.h"
+#include "../ParticleGroup/particleGroup.h"
 #include "../config.h"
 #include <vector>
 #include <array>
@@ -15,16 +15,18 @@
 #include <utility>  // for std::pair
 #include <atomic>
 // #include <unordered_map>
+#include <chrono>
+#include <cstdint>
 
 struct alignas(64) VoxelEntry {
         Voxel* vPtr;
         // Should be modified only when joining particles from threads
-        std::vector<Particle> partsAbsorbed;
+        std::vector<ParticleGroup> partsAbsorbed;
         std::atomic<int> nPartsAbsorbed;
         short int x, y, z;
 
         VoxelEntry(Voxel* _vPtr, short int _x,
-          short int _y, short int _z, std::vector<Particle> _pAbsorbed={}) {
+          short int _y, short int _z, std::vector<ParticleGroup> _pAbsorbed={}) {
             vPtr = _vPtr;
             x = _x;
             y = _y;
@@ -33,7 +35,7 @@ struct alignas(64) VoxelEntry {
             nPartsAbsorbed.store(0, std::memory_order_relaxed);
         }
 
-        void addPartsAbsorbed(const std::vector<Particle>& _partsAbsorbed) {
+        void addPartsAbsorbed(const std::vector<ParticleGroup>& _partsAbsorbed) {
             // std::lock_guard<std::mutex> lock(vPtr->getMtxRef());
             partsAbsorbed.insert(partsAbsorbed.begin(),
               _partsAbsorbed.begin(), _partsAbsorbed.end());
@@ -55,12 +57,12 @@ struct alignas(64) VoxelEntry {
             }
         }
 
-        std::vector<Particle> getPartsAbsorbedCopy() {
+        std::vector<ParticleGroup> getPartsAbsorbedCopy() {
             return partsAbsorbed;
         }
 
         VoxelEntry(Voxel* _vPtr, std::array<short int, 3> _xyz,
-          std::vector<Particle> _pAbsorbed={}) {
+          std::vector<ParticleGroup> _pAbsorbed={}) {
             vPtr = _vPtr;
             x = _xyz[0];
             y = _xyz[1];
@@ -97,44 +99,49 @@ class World {
         // Impossible to copy Voxel because it uses RNG and std::mutex
         // Should scene be const?
         std::vector<VoxelEntry> scene;
-        std::vector<Particle> particles = {};
+        std::vector<ParticleGroup> particles = {};
 
         std::vector<VoxelEntry*> sources = {};
         std::vector<VoxelEntry*> matters = {};
         std::vector<VoxelEntry*> detectors = {};
 
-        // std::mutex newParticlesMutex;  // Used for accessing threadsNewParticles
+        // std::mutex newParticleGroupsMutex;  // Used for accessing threadsNewParticleGroups
         // std::vector<std::mutex> voxelMutexes;
 
         // For multithreading
         std::array<std::mt19937, N_THREADS> threadGens;
         std::array<std::uniform_real_distribution<float>, N_THREADS> threadDists;
-        // // std::array<std::vector<Particle>, N_THREADS> threadPartAccumulator;
+        // // std::array<std::vector<ParticleGroup>, N_THREADS> threadPartAccumulator;
 
         // For single thread
         std::mt19937 gen;
         // Distribution should be in (0, 1) range
         std::uniform_real_distribution<float> dist;
 
-        // void processParticlesRange(int thrIdx, float time, size_t startIdx, size_t endIdx,
-        //   std::vector<Particle>& currentParticles);
+        std::chrono::duration<float> lastIterationTook;
+        // Controls when to decrease particleGroupSize
+        float stepChangeRatio = 0.5;
+        uint16_t particleGroupSize = 1;
+
+        // void processParticleGroupsRange(int thrIdx, float time, size_t startIdx, size_t endIdx,
+        //   std::vector<ParticleGroup>& currentParticleGroups);
         Vector3 getVoxelCoordVec3(int index);
         Vector3 getVoxelCoordVec3(short int x, short int y, short int z);
         std::array<short int, 3> getVoxelPos(int index);
         void updateLists();
         // Get the next voxel a particle will pass
-        std::array<short int, 3> nextVoxelPos(Particle& p);
-        Vector3 nextVoxelPosVec(Particle& p);
+        std::array<short int, 3> nextVoxelPos(ParticleGroup& p);
+        Vector3 nextVoxelPosVec(ParticleGroup& p);
         void addParticlesEmitted(float time, std::mt19937& gen,
           std::uniform_real_distribution<float>& dist);
         void addParticlesEmittedMultithread(float time);
         // Erase deactivated or escaped particles
-        void cleanParticles(std::vector<Particle>& partList);
+        void cleanParticleGroups(std::vector<ParticleGroup>& partList);
         Vector3 getVoxelPos(const Voxel& v);
     public:
         World(short int _sizeX, short int _sizeY, short int _sizeZ,
           float _voxelSide, unsigned int seed = std::random_device{}()) :
-          gen(seed), dist(0, 1) {
+          gen(seed), dist(0, 1), lastIterationTook(0.0f) {
             sizeX = _sizeX;
             sizeY = _sizeY;
             sizeZ = _sizeZ;
@@ -165,9 +172,9 @@ class World {
         // Vector of tuples of const Voxel&, x, y and z
         std::vector<VoxelEntry*> getDetectorEntries();
         int detectorCountAt(short int x, short int y, short int z);
-        std::vector<Particle> detectorPartListAt(short int x,
+        std::vector<ParticleGroup> detectorPartListAt(short int x,
           short int y, short int z);
-        int getTotalParticles() const;
+        size_t getTotalParticles();
 };
 
 #endif

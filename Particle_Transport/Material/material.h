@@ -3,7 +3,7 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "../Particle/particle.h"
+#include "../ParticleGroup/particleGroup.h"
 #include "../XSTable/xstable.h"
 #include <string>
 #include <array>
@@ -31,9 +31,9 @@ class Material {
         short int getAMass();
         float getDensity();
         float getADensity();
-        float getXS(EventType et, const Particle& incP);
-        std::array<float, 3> getEventXSs(const Particle& incP);
-        std::array<XSRecord, 3> getEventRecords(const Particle& incP);
+        float getXS(EventType et, const ParticleGroup& incP);
+        std::array<float, 3> getEventXSs(const ParticleGroup& incP);
+        std::array<XSRecord, 3> getEventRecords(const ParticleGroup& incP);
 };
 
 #endif

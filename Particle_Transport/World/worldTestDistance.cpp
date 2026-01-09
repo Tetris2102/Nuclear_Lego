@@ -11,12 +11,13 @@
 #include <memory>
 #include <utility>
 
-// TODO: make Voxel::processParticle() accept pointers to RNG objects
+// TODO: make Voxel::processParticleGroup() accept pointers to RNG objects
 // instead of having RNG instances for every object
 
 int main() {
 
-    Material airMat = getAir();
+    Material airMat = getM_Air();
+    Material pb207Mat = getM_Pb207();
 
     Voxel air_obj(MATTER, airMat);
     Voxel* air = &air_obj;
@@ -25,7 +26,7 @@ int main() {
     Voxel sourceInAir_obj(SOURCE, airMat, betaSample);
     Voxel* sourceInAir = &sourceInAir_obj;
 
-    Voxel detector_obj(DETECTOR, airMat);
+    Voxel detector_obj(DETECTOR, pb207Mat);
     Voxel* detector = &detector_obj;
 
     const short int x = 3, y = 3, z = 3;
@@ -33,9 +34,9 @@ int main() {
     unsigned int seed = 42;
     World world(x, y, z, 4.0, seed);
     std::vector<Voxel*> scene = {
-        sourceInAir, detector,  air,   air,  air,   air,   air,   air,   air,
-         detector,     air,     air,   air,  air,   air,   air,   air,   air,
-           air,        air,     air,   air,  air,   air,   air,   air,   air
+        sourceInAir,   air,  detector,   detector,  air,   air,   air,   air,   air,
+         detector,     air,    air,      air,  detector,   air,   sourceInAir,   air,   air,
+           air,        air,    air,      air,  air,   air,   air,   air,   air
     };
     world.setScene(scene);
 
@@ -57,7 +58,7 @@ int main() {
           << " created=" << stats.created << std::endl;
   }
 
-    int partsD1 = world.detectorCountAt(1, 0, 0);
+    int partsD1 = world.detectorCountAt(1, 1, 1);
     int partsD2 = world.detectorCountAt(0, 0, 1);
 
     std::cout << "Simulated for 1.0 s" << std::endl;

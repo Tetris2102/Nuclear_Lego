@@ -17,7 +17,7 @@ int main() {
     auto emittedPartsList = sourceCesium.getPartsEmittedList(1.0);
     std::cout << "Emitted " << emittedPartsList.size() << " particles." << std::endl;
     for(auto p : emittedPartsList) {
-        detectorAir.processParticle(p);
+        detectorAir.processParticleGroup(p);
         if(a < 12) {
            // std::cout << "Momentum: " << p.getMomentum().x << ", " <<
            // p.getMomentum().y << ", " << p.getMomentum().z << std::endl;
@@ -32,7 +32,7 @@ int main() {
 }
 
 // Voxel myVoxel(1.0, {1.207, 1.207, 1.207}, air); // in cm
-// Particle myProton(PROTON, 1.0, {0.0, 0.0, 0.0}, {1.0, 1.0, 1.0});
+// ParticleGroup myProton(PROTON, 1.0, {0.0, 0.0, 0.0}, {1.0, 1.0, 1.0});
 // std::cout << myVoxel.intersects(myProton) << '\n';
 // auto params = myVoxel.intersectParams(myProton);
 // std::cout << "tmin: " << params[0] << ", tmax: " << params[1] << '\n';

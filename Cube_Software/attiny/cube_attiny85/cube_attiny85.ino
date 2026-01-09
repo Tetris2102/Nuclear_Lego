@@ -6,31 +6,28 @@
 // SDA at PB0
 // SCL at PB2
 #define PIN_BUZZ 3     // Buzzer pin
-// Have to connect RC network to PIN_LVL_OUT
-// to smooth PWM (C=4.7uF, R=1.0kOhm)
-#define PIN_LVL_OUT 1
 #define PIN_LVL_IN A2  // corresponds to PB4
 
 // Corresponding enums are stored in main code (enums.h)
-uint8_t voxelType;           // at EEPROM 0
+uint8_t voxelType;            // at EEPROM 0
 uint8_t materialType;         // at EEPROM 1
 uint16_t activity;            // no need to store
 uint8_t sampleType;           // at EEPROM 2
-uint8_t particlesDetectable;  // at EEPROM 3
 // particlesDetectable represents [NEUTRON, GAMMA, BETA, ALPHA]
 // (encoded into the 4 least significant bits)
-
+uint8_t particlesDetectable;  // at EEPROM 3
+// 1 = maximum sensitivity, 65535 = minimum sensitivity (very unsensitive)
+uint8_t sensitivity;          // at EEPROM 4
 uint8_t level;
 
 void updateParams();
 void reportOnRequest();
 void receiveAndStore(uint8_t numBytes);
-uint16_t msBetweenDecays(uint16_t activity);
+uint32_t msBetweenDecays(uint16_t activity);
 void beepBuzzer();
 
 void setup() {
     pinMode(PIN_BUZZ, OUTPUT);
-    pinMode(PIN_LVL_OUT, OUTPUT);
     pinMode(PIN_LVL_IN, INPUT);
 
     randomSeed(analogRead(PIN_LVL_IN));
@@ -44,18 +41,21 @@ void setup() {
     TinyWireS.onReceive(receiveAndStore);
 }
 
-uint16_t decay_interval_ms;
+uint32_t decay_interval_ms;
 unsigned long last_beep;
 
 void loop() {
-    TinyWireS_stop_check();
+    // If voxel is detector
+    if(voxelType == 2) {
+        TinyWireS_stop_check();
 
-    unsigned long now = millis();
+        unsigned long now = millis();
 
-    if(now - last_beep > decay_interval_ms) {
-        beepBuzzer();
-        decay_interval_ms = msBetweenDecays(activity);
-        last_beep = now;
+        if(now - last_beep > decay_interval_ms) {
+            beepBuzzer();
+            decay_interval_ms = msBetweenDecays(activity);
+            last_beep = now;
+        }
     }
 }
 
@@ -65,6 +65,7 @@ void updateParams() {
     materialType = EEPROM.read(1);
     sampleType = EEPROM.read(2);
     particlesDetectable = EEPROM.read(3);
+    sensitivity = min(1, EEPROM.read(4));  // erased EEPROM holds 255
 
     // Determine voxel's level
     uint16_t v_in = analogRead(PIN_LVL_IN);
@@ -80,29 +81,33 @@ void updateParams() {
 void reportOnRequest() {
     TinyWireS.write(voxelType);
     TinyWireS.write(materialType);
-    TinyWireS.write(activity & 0xFF);  // Least significant byte first
-    TinyWireS.write(activity >> 8);    // Most significant byte then
+    // TinyWireS.write(activity & 0xFF);  // Least significant byte first
+    // TinyWireS.write(activity >> 8);    // Most significant byte then
     TinyWireS.write(sampleType);
     TinyWireS.write(particlesDetectable);
     TinyWireS.write(level);
 }
 
 void receiveAndStore(uint8_t numBytes) {
-    if(numBytes == 5) {
+    if(numBytes == 2) {
+        activity = TinyWireS.read() | (TinyWireS.read() << 8);
+    } else if(numBytes == 7) {
         voxelType = TinyWireS.read();
         materialType = TinyWireS.read();
         activity = TinyWireS.read() | (TinyWireS.read() << 8);
         sampleType = TinyWireS.read();
         particlesDetectable = TinyWireS.read();
+        sensitivity = TinyWireS.read();
 
         EEPROM.update(0, voxelType);
         EEPROM.update(1, materialType);
         EEPROM.update(2, sampleType);
         EEPROM.update(3, particlesDetectable);
+        EEPROM.update(4, sensitivity);
     }
 }
 
-uint16_t msBetweenDecays(uint16_t activity) {
+uint32_t msBetweenDecays(uint16_t activity) {
     if(activity > 500) activity = 500;  // 500 decays/second max
     // Handle background radiation in case activity is small
     if(activity == 0) activity = 1;
@@ -116,9 +121,10 @@ uint16_t msBetweenDecays(uint16_t activity) {
       (diff * diff * diff) / (3 * 65535 * 65535);
 
     uint16_t mean_ms = 1000UL / activity;
-    uint32_t result = (mean_ms * ln_approx) / 65535;
+    // First compute in uint32_t to avoid overflow behaviour
+    uint32_t result = (mean_ms * ln_approx) / ((uint16_t)65535 * sensitivity);
 
-    return (uint16_t)result;
+    return result;
 }
 
 void beepBuzzer() {

@@ -7,17 +7,18 @@
 #include <array>
 #include <cmath>
 
-std::vector<Particle> IsotopeSample::generateParticles(float timeElapsed,
-  Vector3 originXYZ, std::uniform_real_distribution<float>& dist,
-  std::mt19937& gen) {
-    std::vector<Particle> particles;
+std::vector<ParticleGroup> IsotopeSample::generateParticleGroups(
+  float timeElapsed, Vector3 originXYZ, uint16_t partGroupSize,
+  std::uniform_real_distribution<float>& dist, std::mt19937& gen) {
+    std::vector<ParticleGroup> particles;
 
     int decays = activity * timeElapsed;
-    for(int i = 0; i<decays; i++) {
+    for(int i = 0; i<decays; i += partGroupSize) {
         // Convert random numbers from [0; 1) to [-1; 1) range
         Vector3 mom(dist(gen) * 2 - 1, dist(gen) * 2 - 1, dist(gen) * 2 - 1);
         mom.normalize();
-        Particle p(emissionParticle, emissionEnergy, originXYZ, mom);
+        ParticleGroup p(emissionParticleGroup, emissionEnergy, originXYZ, mom);
+        p.setGroupSize(partGroupSize);
         particles.push_back(p);
     }
     return particles;
@@ -35,12 +36,12 @@ float IsotopeSample::getActivity() {
     return activity;
 }
 
-void IsotopeSample::setEmitParticleType(ParticleType pt) {
-    emissionParticle = pt;
+void IsotopeSample::setEmitParticleGroupType(ParticleType pt) {
+    emissionParticleGroup = pt;
 }
 
-ParticleType IsotopeSample::getEmitParticleType() {
-    return emissionParticle;
+ParticleType IsotopeSample::getEmitParticleGroupType() {
+    return emissionParticleGroup;
 }
 
 float IsotopeSample::getEmitEnergy() {
