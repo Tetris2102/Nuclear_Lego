@@ -16,6 +16,7 @@
 #include <atomic>
 // #include <unordered_map>
 #include <chrono>
+#include <cstdint>
 
 struct alignas(64) VoxelEntry {
         Voxel* vPtr;

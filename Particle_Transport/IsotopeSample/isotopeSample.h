@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <random>
+#include <cstdint>
 
 // Mass of source is considered constant
 class IsotopeSample {

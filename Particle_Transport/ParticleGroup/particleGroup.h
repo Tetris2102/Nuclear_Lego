@@ -5,6 +5,7 @@
 
 #include "../Vector3/vector3.h"
 #include <array>
+#include <cstdint>
 
 enum ParticleType {
     NONE,
