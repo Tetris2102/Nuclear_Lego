@@ -62,7 +62,7 @@ class alignas(64) VoxelEntry {
         }
 
         void setPartsDetectable(const std::vector<ParticleType>& _partsDetectable) {
-            partsDetectable = _partsDetecatable;
+            partsDetectable = _partsDetectable;
         }
 
         void resetNPartsAbsorbed() {
@@ -189,11 +189,12 @@ class World {
         // sizeX, sizeY and sizeZ given in constructor
         void setScene(std::vector<Voxel*>& newScene,
           short int newX=0, short int newY=0, short int newZ=0);
-        // Vector of tuples of const Voxel&, x, y and z
-        std::vector<VoxelEntry*> getDetectorEntries();
+        // void setScene(std::vector<VoxelEntry>& newScene,
+        //   short int newX=0, short int newY=0, short int newZ=0);
         int detectorCountAt(short int x, short int y, short int z);
         std::vector<ParticleGroup> detectorPartListAt(short int x,
           short int y, short int z);
+        std::vector<VoxelEntry*> getDetectorEntries();
         size_t getTotalParticles();
 };
 
