@@ -4,11 +4,11 @@
 #define ENUMS_H
 #include <cstdint>
 
-enum VoxelType : uint8_t {
-    SOURCE,
-    MATTER,
-    DETECTOR
-};
+// enum VoxelType : uint8_t {
+//     SOURCE,
+//     MATTER,
+//     DETECTOR
+// };
 
 enum MaterialType : uint8_t {
     AIR_M,
