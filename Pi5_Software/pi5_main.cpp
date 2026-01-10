@@ -24,18 +24,15 @@ vector<Material> materials;
 vector<IsotopeSample> isotopeSamples;
 World* worldPtr = nullptr;
 
-vector<Voxel*> createAirScenePair(int size) {
-    vector<Voxel> airScene;
-    vector<Voxel*> airScenePtrs;
+vector<Voxel*> createAirFilledScene(int size) {
+    vector<Voxel*> airScene;
     airScene.reserve(size);
-    airScenePtrs.reserve(size);
     Material air = getM_Air();
 
     for(uint8_t i=0; i<size; i++) {
         airScene.push_back(new Voxel{MATTER, air});
-        airScenePtrs.push_back(airScene[i]);
     }
-    return array{airScene, airScenePtrs};
+    return airScene;
 }
 
 Material getMaterialFromInt(uint8_t idx) {
@@ -94,9 +91,7 @@ int main() {
 
     Material air_mat = getM_Air();
 
-    auto scenes = createAirScenePair(48);
-    vector<Voxel> sceneStore = scenes[0];
-    vector<Voxel*> scene = scenes[1];
+    vector<Voxel*> scene = createAirFilledScene(48);
     world.setScene(scene);
 
     const char* dev = "/dev/i2c-1";
