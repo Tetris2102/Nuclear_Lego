@@ -1,0 +1,13 @@
+g++-15 \
+../Particle_Transport/Helpers/helpers.cpp \
+../Particle_Transport/Vector3/vector3.cpp \
+../Particle_Transport/ParticleGroup/particleGroup.cpp \
+../Particle_Transport/IsotopeSample/isotopeSample.cpp \
+../Particle_Transport/XSTable/xstable.cpp \
+../Particle_Transport/Material/material.cpp \
+../Particle_Transport/Data/data.cpp \
+../Particle_Transport/Voxel/voxel.cpp \
+../Particle_Transport/World/world.cpp \
+pi5_main.cpp \
+-O2 -fopenmp \
+-o pi5_main

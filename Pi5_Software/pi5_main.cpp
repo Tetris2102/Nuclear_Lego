@@ -24,6 +24,17 @@ vector<Material> materials;
 vector<IsotopeSample> isotopeSamples;
 World* worldPtr = nullptr;
 
+vector<Voxel*> createAirFilledScene(int size) {
+    vector<Voxel*> airScene;
+    airScene.reserve(size);
+    Material air = getM_Air();
+
+    for(uint8_t i=0; i<size; i++) {
+        airScene.push_back(&(new Voxel{MATTER, air}));
+    }
+    return airScene;
+}
+
 Material getMaterialFromInt(uint8_t idx) {
     return materials[idx];
 }
@@ -79,11 +90,9 @@ int main() {
     worldPtr = &world;
 
     Material air_mat = getM_Air();
-    Voxel air_obj(MATTER, air_mat);
-    Voxel* air = &air_obj;
 
-    vector<Voxel*> initialScene(48, air);
-    world.setScene(initialScene);
+    vector<Voxel*> scene = createAirFilledScene(48);
+    world.setScene(scene);
 
     const char* dev = "/dev/i2c-1";
 
@@ -138,7 +147,7 @@ int main() {
                     if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) continue;
                     int bytesRead = read(fd, currentCubeData.data(), 5);
                     if(bytesRead == 5) {
-                        recordCubeDataTo(initialScene, currentCubeData, x, y);
+                        recordCubeDataTo(scene, currentCubeData, x, y);
                     } else if(bytesRead > 0) {
                         cerr << "Warning: Only read " << bytesRead 
                              << " bytes from 0x" << hex << (int)i2c_addr << endl;
@@ -174,7 +183,7 @@ int main() {
                     if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) continue;
                     int bytesRead = read(fd, currentCubeData.data(), 5);
                     if(bytesRead == 5) {
-                        recordCubeDataTo(initialScene, currentCubeData, x, y);
+                        recordCubeDataTo(scene, currentCubeData, x, y);
                     } else if(bytesRead > 0) {
                         cerr << "Warning: Only read " << bytesRead 
                              << " bytes from 0x" << hex << (int)i2c_addr << endl;

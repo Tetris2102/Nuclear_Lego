@@ -86,11 +86,14 @@ class Voxel {
           const Vector3& position) const;
         std::array<float, 2> intersectParams(const ParticleGroup& p,
           float voxelHalfSide, const Vector3& position) const;  // returns [tmin, tmax]
+	void setType(VoxelType vt);
         VoxelType getType() const;
         // void setPosition(const Vector3& newPosition);
         // Vector3 getPosition() const;
         void setMaterial(const Material& newMat);
         Material getMaterial();
+	void setIsotopeSample(IsotopeSample& is);
+	IsotopeSample getIsotopeSample();
         std::vector<ParticleGroup> getPartsEmittedList(
           float timeElapsed, const Vector3& position, float partGroupSize,
           std::uniform_real_distribution<float>& dist, std::mt19937& gen);

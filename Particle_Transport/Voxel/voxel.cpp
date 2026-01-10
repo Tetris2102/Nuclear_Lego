@@ -322,6 +322,10 @@ std::array<float, 2> Voxel::intersectParams(const ParticleGroup& p,
     return {tmin, tmax};
 }
 
+void Voxel::setType(VoxelType vt) {
+    type = vt;
+}
+
 VoxelType Voxel::getType() const {
     return type;
 }
@@ -340,6 +344,14 @@ void Voxel::setMaterial(const Material& newMat) {
 
 Material Voxel::getMaterial() {
     return material;
+}
+
+void Voxel::setIsotopeSample(IsotopeSample& is) {
+    sample = is;
+}
+
+IsotopeSample Voxel::getIsotopeSample() {
+    return sample;
 }
 
 std::vector<ParticleGroup> Voxel::getPartsEmittedList(
