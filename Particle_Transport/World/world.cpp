@@ -547,6 +547,16 @@ void World::setScene(std::vector<Voxel*>& newScene, short int newX,
     updateLists();
 }
 
+void World::setScene(std::vector<VoxelEntry>& newScene, short int newX,
+  short int newY, short int newZ) {
+    if(newX != 0) sizeX = newX;
+    if(newY != 0) sizeY = newY;
+    if(newZ != 0) sizeZ = newZ;
+
+    scene = newScene;
+    updateLists();
+}
+
 std::vector<VoxelEntry*> World::getDetectorEntries() {
     return detectors;
 }

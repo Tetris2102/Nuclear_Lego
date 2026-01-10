@@ -56,13 +56,14 @@ vector<ParticleType> partsListFromInt(uint8_t val) {
 void recordCubeDataTo(vector<Voxel*>& sceneToWrite,
   array<uint8_t, 5>& cubeData, int x, int y) {
     uint8_t z = cubeData[4];
-    auto voxelPtr = worldPtr->voxelEntryAt(x, y, z)->vPtr;
+    auto voxelEntryPtr = worldPtr->voxelEntryAt(x, y, z);
+    auto* voxelPtr = voxelEntryPtr->vPtr;
     VoxelType voxelType = static_cast<VoxelType>(cubeData[0]);
     voxelPtr->setType(voxelType);
     voxelPtr->setMaterial(getMaterialFromInt(cubeData[1]));
     if(voxelType == DETECTOR) {
         voxelPtr->setIsotopeSample(getSampleFromInt(cubeData[2]));
-        voxelPtr->setPartsDetectable(partsListFromInt(cubeData[3]));
+        voxelEntryPtr->setPartsDetectable(partsListFromInt(cubeData[3]));
     }
 }
 

@@ -61,6 +61,10 @@ class alignas(64) VoxelEntry {
             nPartsAbsorbed.fetch_add(count, std::memory_order_relaxed);
         }
 
+        void setPartsDetectable(const std::vector<ParticleType>& _partsDetectable) {
+            partsDetectable = _partsDetecatable;
+        }
+
         void resetNPartsAbsorbed() {
             nPartsAbsorbed.store(0, std::memory_order_relaxed);
         }
