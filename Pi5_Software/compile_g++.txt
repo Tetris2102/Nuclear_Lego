@@ -1,4 +1,4 @@
-g++-15 \
+g++ \
 ../Particle_Transport/Helpers/helpers.cpp \
 ../Particle_Transport/Vector3/vector3.cpp \
 ../Particle_Transport/ParticleGroup/particleGroup.cpp \

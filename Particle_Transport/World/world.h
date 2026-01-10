@@ -18,11 +18,19 @@
 #include <chrono>
 #include <cstdint>
 
-struct alignas(64) VoxelEntry {
+class alignas(64) VoxelEntry {
+    private:
+        bool presentInVector(const std::vector<ParticleType>& vec, ParticleType pt) {           for(const auto& val : vec) {
+                if(val == pt) return true;
+           }
+           return false;
+        }
+    public:
         Voxel* vPtr;
         // Should be modified only when joining particles from threads
         std::vector<ParticleGroup> partsAbsorbed;
         std::atomic<int> nPartsAbsorbed;
+        std::vector<ParticleType> partsDetectable;
         short int x, y, z;
 
         VoxelEntry(Voxel* _vPtr, short int _x,
@@ -37,8 +45,16 @@ struct alignas(64) VoxelEntry {
 
         void addPartsAbsorbed(const std::vector<ParticleGroup>& _partsAbsorbed) {
             // std::lock_guard<std::mutex> lock(vPtr->getMtxRef());
+            int probeCount = 100;
+            int notAbsorbable;
+            for(int i=0; i<probeCount; i++) {
+                if(!presentInVector(partsDetectable, _partsAbsorbed[i].getType())) notAbsorbable++;
+            }
+            size_t vecSize = _partsAbsorbed.size();
+            float percentageAbsorbable = 1.0f - notAbsorbable/vecSize;
+            auto end = _partsAbsorbed.end() - percentageAbsorbable * vecSize;
             partsAbsorbed.insert(partsAbsorbed.begin(),
-              _partsAbsorbed.begin(), _partsAbsorbed.end());
+              _partsAbsorbed.begin(), end);
         }
 
         void incrementPartsAbsorbed(int count) {

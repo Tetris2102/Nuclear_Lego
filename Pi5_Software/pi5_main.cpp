@@ -216,17 +216,14 @@ int main() {
     }
 
     array<uint8_t, 2> cubeDataToWrite;
-    auto detectorsMap = world.getDetectorsAbsorbedMap();
-    for(const auto& dMap : detectorsMap) {
+    auto detectorEntries = world.getDetectorEntries();
+    for(const auto& dEntry : detectorEntries) {
 
-        auto detectorEntry = dMap.first;
-        auto detectorPtr = detectorEntry->vPtr;
+        uint8_t x = dEntry->x;
+        uint8_t y = dEntry->y;
+        uint8_t z = dEntry->z;
 
-        uint8_t x = detectorEntry->x;
-        uint8_t y = detectorEntry->y;
-        uint8_t z = detectorEntry->z;
-
-        uint16_t activity = detectorPtr->getNPartsAbsorbed();
+        uint16_t activity = dEntry->getNPartsAbsorbed();
         cubeDataToWrite[0] = activity & 0xFF;  // Least significant byte
         cubeDataToWrite[1] = activity >> 8;    // Most significant byte
 

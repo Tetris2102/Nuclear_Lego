@@ -350,6 +350,13 @@ Voxel& World::voxelAtPos(const Vector3& pos) {
 //     cleanParticleGroups();
 // }
 
+bool presentInVector(const std::vector<ParticleType>& vec, ParticleType pt) {
+    for(const auto& val : vec) {
+        if(val == pt) return true;
+    }
+    return false;
+}
+
 void World::simulate(float time) {
 
     auto start = std::chrono::high_resolution_clock::now();

@@ -346,7 +346,7 @@ Material Voxel::getMaterial() {
     return material;
 }
 
-void Voxel::setIsotopeSample(IsotopeSample& is) {
+void Voxel::setIsotopeSample(IsotopeSample is) {
     sample = is;
 }
 
