@@ -109,20 +109,20 @@ int main() {
     // Deselect all channels at MUX 1
     unsigned char muxData = 0b00000000;
     if(ioctl(fd, I2C_SLAVE, MUX1_ADDR) < 0) {
-        cerr << "Error: Failed to set MUX1 slave address" << endl;
+        cerr << "Error: Failed to set MUX1 slave address on init" << endl;
         return 1;
     }
     if(write(fd, &muxData, 1) < 1) {
-        cerr << "Error: Failed to write to multiplexer 1" << endl;
+        cerr << "Error: Failed to deselect MUX 2 chanels on init" << endl;
     }
 
     // Deselect all channels at MUX 2
     if(ioctl(fd, I2C_SLAVE, MUX2_ADDR) < 0) {
-        cerr << "Error: Failed to set MUX2 slave address" << endl;
+        cerr << "Error: Failed to set MUX2 slave address on init" << endl;
         return 1;
     }
     if(write(fd, &muxData, 1) < 1) {
-        cerr << "Error: Failed to write to multiplexer 2" << endl;
+        cerr << "Error: Failed to deselect MUX 2 chanels on init" << endl;
     }
 
     while(true) {
