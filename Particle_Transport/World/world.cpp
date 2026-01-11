@@ -532,6 +532,10 @@ void World::simulate(float time) {
     lastIterationTook = end - start;
 }
 
+std::chrono::duration<float> World::getLastIterationTime() {
+    return lastIterationTook;
+}
+
 void World::setScene(std::vector<Voxel*>& newScene, short int newX,
   short int newY, short int newZ) {
     if(newX != 0) sizeX = newX;

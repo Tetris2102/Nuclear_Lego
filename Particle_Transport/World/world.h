@@ -185,6 +185,7 @@ class World {
         VoxelEntry* voxelEntryAtPos(const Vector3& pos);
         Voxel& voxelAtPos(const Vector3& pos);
         void simulate(float time);
+        std::chrono::duration<float> getLastIterationTime();
         // newScene must be structured according to
         // sizeX, sizeY and sizeZ given in constructor
         void setScene(std::vector<Voxel*>& newScene,
