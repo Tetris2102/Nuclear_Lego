@@ -1,5 +1,5 @@
-// #include "../Particle/particle.h"
-#include "../Vector3/vector3.h"
+// #include "particleGroup.h"
+#include "vector3.h"
 #include <cmath>
 #include <array>
 

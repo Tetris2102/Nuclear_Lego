@@ -6,9 +6,9 @@
 // TODO: maybe add void processParticleGroupGroup(ParticleGroupGroup* pg); for managing
 // large fluxes, i.e. treat one particle as many having the same parameters
 
-#include "../Material/material.h"
-#include "../IsotopeSample/isotopeSample.h"
-#include "../Vector3/vector3.h"
+#include "material.h"
+#include "isotopeSample.h"
+#include "vector3.h"
 #include <array>
 #include <vector>
 #include <cassert>

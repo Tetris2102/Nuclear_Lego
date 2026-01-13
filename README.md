@@ -13,7 +13,7 @@ contain 3 layers of 4 by 4 cubes maximum. Every cube can be programmed through
 I2C to change what it represents. Up to 256 types of isotopes and up to 256  
 types of materials are supported, extending this is also possible. Radiation  
 detectors can be programmed to detect any combination of alpha, beta, gamma  
-and neutron radiation.  
+and neutron radiation.
 
 # Credits:
 1. My parents and my wonderful Special Projects teacher  

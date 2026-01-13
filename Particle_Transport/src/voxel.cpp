@@ -1,8 +1,8 @@
 // voxel.cpp
 
 #include "voxel.h"
-#include "../Helpers/helpers.cpp"
-#include "../ParticleGroup/particleGroup.h"
+#include "helpers.cpp"
+#include "particleGroup.h"
 #include <algorithm>
 #include <cmath>
 // #include <iostream>
@@ -139,7 +139,12 @@ std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::process
         p.deactivate();  // Incident particle absorbed
     }
 
-    return std::pair(particlesCreated, particlesAbsorbed);
+    std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> out(
+        particlesCreated,
+        particlesAbsorbed
+    );
+
+    return out;
 }
 
 // std::pair<std::vector<ParticleGroup>, std::vector<ParticleGroup>> Voxel::processParticleGroupThreadSafe(ParticleGroup& p,

@@ -3,8 +3,8 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "../ParticleGroup/particleGroup.h"
-#include "../XSTable/xstable.h"
+#include "particleGroup.h"
+#include "xstable.h"
 #include <string>
 #include <array>
 

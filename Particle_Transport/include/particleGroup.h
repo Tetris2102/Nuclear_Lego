@@ -3,7 +3,7 @@
 #ifndef PARTICLE_H
 #define PARTICLE_H
 
-#include "../Vector3/vector3.h"
+#include "vector3.h"
 #include <array>
 #include <cstdint>
 

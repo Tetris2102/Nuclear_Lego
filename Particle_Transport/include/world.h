@@ -3,9 +3,9 @@
 #ifndef WORLD_H
 #define WORLD_H
 
-#include "../Voxel/voxel.h"
-#include "../ParticleGroup/particleGroup.h"
-#include "../config.h"
+#include "voxel.h"
+#include "particleGroup.h"
+#include "config.h"
 #include <vector>
 #include <array>
 #include <omp.h>
@@ -16,7 +16,7 @@
 #include <atomic>
 // #include <unordered_map>
 #include <chrono>
-#include <cstdint>
+#include <cstdint>  // for uint16_t
 
 struct alignas(64) VoxelEntry {
         Voxel* vPtr;

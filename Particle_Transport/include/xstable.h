@@ -3,7 +3,7 @@
 #ifndef EVENT_H
 #define EVENT_H
 
-#include "../ParticleGroup/particleGroup.h"
+#include "particleGroup.h"
 #include <vector>
 #include <array>
 #include <utility>
