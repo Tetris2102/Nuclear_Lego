@@ -350,6 +350,13 @@ Voxel& World::voxelAtPos(const Vector3& pos) {
 //     cleanParticleGroups();
 // }
 
+bool presentInVector(const std::vector<ParticleType>& vec, ParticleType pt) {
+    for(const auto& val : vec) {
+        if(val == pt) return true;
+    }
+    return false;
+}
+
 void World::simulate(float time) {
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -525,6 +532,10 @@ void World::simulate(float time) {
     lastIterationTook = end - start;
 }
 
+std::chrono::duration<float> World::getLastIterationTime() {
+    return lastIterationTook;
+}
+
 void World::setScene(std::vector<Voxel*>& newScene, short int newX,
   short int newY, short int newZ) {
     if(newX != 0) sizeX = newX;
@@ -540,9 +551,15 @@ void World::setScene(std::vector<Voxel*>& newScene, short int newX,
     updateLists();
 }
 
-std::vector<VoxelEntry*> World::getDetectorEntries() {
-    return detectors;
-}
+// void World::setScene(std::vector<VoxelEntry>& newScene, short int newX,
+//   short int newY, short int newZ) {
+//     if(newX != 0) sizeX = newX;
+//     if(newY != 0) sizeY = newY;
+//     if(newZ != 0) sizeZ = newZ;
+// 
+//     scene = newScene;
+//     updateLists();
+// }
 
 int World::detectorCountAt(short int x, short int y, short int z) {
     auto* detectorEntryPtr = voxelEntryAt(x, y, z);
@@ -556,6 +573,10 @@ std::vector<ParticleGroup> World::detectorPartListAt(short int x,
     auto detectorEntryPtr = voxelEntryAt(x, y, z);
     assert(detectorEntryPtr->vPtr->getType() == DETECTOR);
     return detectorEntryPtr->getPartsAbsorbedCopy();
+}
+
+std::vector<VoxelEntry*> World::getDetectorEntries() {
+    return detectors;
 }
 
 size_t World::getTotalParticles() {

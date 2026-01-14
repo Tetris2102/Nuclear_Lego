@@ -16,13 +16,21 @@
 #include <atomic>
 // #include <unordered_map>
 #include <chrono>
-#include <cstdint>  // for uint16_t
+#include <cstdint>
 
-struct alignas(64) VoxelEntry {
+class alignas(64) VoxelEntry {
+    private:
+        bool presentInVector(const std::vector<ParticleType>& vec, ParticleType pt) {           for(const auto& val : vec) {
+                if(val == pt) return true;
+           }
+           return false;
+        }
+    public:
         Voxel* vPtr;
         // Should be modified only when joining particles from threads
         std::vector<ParticleGroup> partsAbsorbed;
         std::atomic<int> nPartsAbsorbed;
+        std::vector<ParticleType> partsDetectable;
         short int x, y, z;
 
         VoxelEntry(Voxel* _vPtr, short int _x,
@@ -37,12 +45,24 @@ struct alignas(64) VoxelEntry {
 
         void addPartsAbsorbed(const std::vector<ParticleGroup>& _partsAbsorbed) {
             // std::lock_guard<std::mutex> lock(vPtr->getMtxRef());
+            int probeCount = 100;
+            int notAbsorbable;
+            for(int i=0; i<probeCount; i++) {
+                if(!presentInVector(partsDetectable, _partsAbsorbed[i].getType())) notAbsorbable++;
+            }
+            size_t vecSize = _partsAbsorbed.size();
+            float percentageAbsorbable = 1.0f - notAbsorbable/vecSize;
+            auto end = _partsAbsorbed.end() - percentageAbsorbable * vecSize;
             partsAbsorbed.insert(partsAbsorbed.begin(),
-              _partsAbsorbed.begin(), _partsAbsorbed.end());
+              _partsAbsorbed.begin(), end);
         }
 
         void incrementPartsAbsorbed(int count) {
             nPartsAbsorbed.fetch_add(count, std::memory_order_relaxed);
+        }
+
+        void setPartsDetectable(const std::vector<ParticleType>& _partsDetectable) {
+            partsDetectable = _partsDetectable;
         }
 
         void resetNPartsAbsorbed() {
@@ -165,15 +185,17 @@ class World {
         VoxelEntry* voxelEntryAtPos(const Vector3& pos);
         Voxel& voxelAtPos(const Vector3& pos);
         void simulate(float time);
+        std::chrono::duration<float> getLastIterationTime();
         // newScene must be structured according to
         // sizeX, sizeY and sizeZ given in constructor
         void setScene(std::vector<Voxel*>& newScene,
           short int newX=0, short int newY=0, short int newZ=0);
-        // Vector of tuples of const Voxel&, x, y and z
-        std::vector<VoxelEntry*> getDetectorEntries();
+        // void setScene(std::vector<VoxelEntry>& newScene,
+        //   short int newX=0, short int newY=0, short int newZ=0);
         int detectorCountAt(short int x, short int y, short int z);
         std::vector<ParticleGroup> detectorPartListAt(short int x,
           short int y, short int z);
+        std::vector<VoxelEntry*> getDetectorEntries();
         size_t getTotalParticles();
 };
 
