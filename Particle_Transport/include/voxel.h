@@ -92,7 +92,7 @@ class Voxel {
         // Vector3 getPosition() const;
         void setMaterial(const Material& newMat);
         Material getMaterial();
-	void setIsotopeSample(IsotopeSample& is);
+	void setIsotopeSample(IsotopeSample is);
 	IsotopeSample getIsotopeSample();
         std::vector<ParticleGroup> getPartsEmittedList(
           float timeElapsed, const Vector3& position, float partGroupSize,
