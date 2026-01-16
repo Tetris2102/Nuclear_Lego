@@ -21,6 +21,8 @@ set(SOURCES
 
 add_executable(${PROJ_NAME} ${SOURCES})
 
+target_compile_options(${PROJ_NAME} PRIVATE -O2)
+
 target_include_directories(${PROJ_NAME} PUBLIC include src)
 
 if(OpenMP_CXX_FOUND)
