@@ -34,6 +34,8 @@ make
 ```
 
 Please note this is for debugging only and you will anyway receive an error:
+``` bash
 .../pi5_main.cpp:8:10: fatal error: linux/i2c-dev.h: No such file or directory
     8 | #include <linux/i2c-dev.h>
       |          ^~~~~~~~~~~~~~~~~
+```
