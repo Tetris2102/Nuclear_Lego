@@ -1,8 +1,8 @@
 // pi5_main.cpp
 
-#include "../Particle_Transport/World/world.h"
-#include "../Particle_Transport/Data/data.cpp"
-#include "../enums.h"
+#include "world.h"
+#include "data.cpp"
+#include "enums.h"
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>

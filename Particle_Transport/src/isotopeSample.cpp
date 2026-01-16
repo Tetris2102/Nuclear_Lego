@@ -1,7 +1,7 @@
 // isotopeSample.cpp
 
 #include "isotopeSample.h"
-#include "../Helpers/helpers.cpp"
+#include "helpers.cpp"
 #include <string>
 #include <vector>
 #include <array>

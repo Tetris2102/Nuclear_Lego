@@ -2,7 +2,7 @@
 // at different distances to source
 
 #include "world.h"
-#include "../Data/data.cpp"
+#include "data.cpp"
 #include <vector>
 #include <random>
 #include <iostream>

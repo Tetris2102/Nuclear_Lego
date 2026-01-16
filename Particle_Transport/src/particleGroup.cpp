@@ -1,7 +1,7 @@
 // particle.cpp
 
 #include "particleGroup.h"
-#include "../Helpers/helpers.cpp"
+#include "helpers.cpp"
 
 void ParticleGroup::setEnergy(float newE) {
     E = newE;

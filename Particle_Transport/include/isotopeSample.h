@@ -3,8 +3,8 @@
 #ifndef IsotopeSample_H
 #define IsotopeSample_H
 
-#include "../Vector3/vector3.h"
-#include "../ParticleGroup/particleGroup.h"
+#include "vector3.h"
+#include "particleGroup.h"
 #include <string>
 #include <vector>
 #include <random>

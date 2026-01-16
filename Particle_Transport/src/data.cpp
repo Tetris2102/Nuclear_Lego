@@ -1,10 +1,10 @@
 // data.cpp
 // for some of the data, see https://www-nds.iaea.org
 
-#include "../Material/material.h"
-#include "../XSTable/xstable.h"
-#include "../ParticleGroup/particleGroup.h"
-#include "../IsotopeSample/isotopeSample.h"
+#include "material.h"
+#include "xstable.h"
+#include "particleGroup.h"
+#include "isotopeSample.h"
 #include <vector>
 
 // Energy values used: 10 keV, 50 keV, 100 keV, 200 keV, 500 keV, 1 MeV, 2 MeV

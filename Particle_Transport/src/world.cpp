@@ -1,7 +1,7 @@
 // world.cpp
 
 #include "world.h"
-#include "../config.h"
+#include "config.h"
 #include <cmath>
 #include <limits>
 #include <array>
