@@ -15,6 +15,46 @@ types of materials are supported, extending this is also possible. Radiation
 detectors can be programmed to detect any combination of alpha, beta, gamma  
 and neutron radiation.
 
+# Setup instructions
+## Raspberry Pi 5:
+1. Install g++ and cmake:
+``` bash
+sudo apt install g++ cmake
+```
+OpenMP should be included with g++ installation
+
+2. Clone the repository and compile executable:
+``` bash
+cd ~
+mkdir GitHub && cd GitHub
+git clone https://github.com/Tetris2102/Nuclear_Lego
+cd Nuclear_Lego
+cd Particle_Transport
+mkdir build && cd build
+cmake ..
+make
+```
+
+3. Make the executable launch at startup
+
+4. Set poweroff button and make it act on the first press
+
+5. (Optional) Enable SSH and/or Raspberry Pi Connect
+
+## Hardware:
+1. Assemble cubes (3d printing, soldering and flashing software on ATTiny85).
+It is convenient to use Arduino UNO via Arduino As ISP to program ATTiny 85
+
+2. Assemble the base.
+3D print base, then put in poweroff button and power status LED. Mount Raspberry Pi in place with 2 M3x6mm flathead bolts (M3 bolts used everywhere). Solder the 70x90 mm perf board with 2 I2C multiplexers and a level shifter and screw it in with a 3d-printed frame and four M3x6mm flathead bolts. Put header pins in corresponding openings in base lid and solder 30 cm wires with female ports at the other end. Wire everything accordingly. Screw on the lid with eight M3x10mm flathead bolts.
+
+3. You should be good to go unless any major mistakes were made in the process!
+
+# Usage
+1. Now if you have at least two cubes, you can program one to be source and the other to be a detector with an Arduino Uno or Nano via I2C (see cube_attiny85.ino and test_write.ino for programming via I2C).
+2. If you put these cubes close to each other on the base, or on top of each other, the detector should produce increased counts with its buzzer.
+3. With 3 cubes or more and by adding more reactions/scatters/absorbs to data.cpp you should be able to experiment with particle absorbtion, reflection, production, fission, criticality, and more! Don't forget to recompile after any data was modified for changes to take effect.
+
 # Credits:
 1. My parents and my wonderful Special Projects teacher  
 2. https://grabcad.com/library/double-sided-fr-4-perfboards-w-m2-corners-1  
