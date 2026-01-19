@@ -36,10 +36,57 @@ make
 ```
 
 3. Make the executable launch at startup
+``` bash
+mkdir -p ~/.config/autostart
+nano ~/.config/autostart/nuclear_lego.desktop
+```
+Then paste the following into editor:
+```
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Comment=Start nuclear lego executable in terminal
+Exec=lxterminal -e ~/GitHub/Nuclear_Lego/Particle_Transport/build/nuclear_lego
+Hidden=false
+Name=Nuclear Lego
+StartupNotify=true
+Terminal=true
+```
 
-4. Set poweroff button and make it act on the first press
+5. Set poweroff button and make it act on the first press
+To set poweroff button at GPIO pin 17:
+``` bash
+sudo nano /boot/firmware/config.txt
+```
 
-5. (Optional) Enable SSH and/or Raspberry Pi Connect
+In editor, add the following line:
+```
+dtoverlay=gpio-shutdown,gpio_pin=17,gpio_pull=up,debounce=1000
+```
+
+To make the poweroff button act on first press:
+``` bash
+sudo nano /boot/firmware/cmdline.txt
+```
+
+In editor, add the following line:
+```
+command_poweroff=poweroff
+```
+
+Then REBOOT with
+``` bash
+sudo reboot
+```
+
+Now you can connect a poweroff button between GPIO pin 17 and ground.
+
+7. (Optional) Enable SSH and/or Raspberry Pi Connect
+To enable SSH through terminal:
+``` bash
+sudo raspi-config
+```
+Go to Interfacing Options -> SSH -> Yes
 
 ## Hardware:
 1. Assemble cubes (3d printing, soldering and flashing software on ATTiny85).
