@@ -81,12 +81,17 @@ sudo reboot
 
 Now you can connect a poweroff button between GPIO pin 17 and ground.
 
-7. (Optional) Enable SSH and/or Raspberry Pi Connect
-To enable SSH through terminal:
+7. (Optional) Enable SSH for easy access to Raspberry Pi
 ``` bash
 sudo raspi-config
 ```
 Go to Interfacing Options -> SSH -> Yes
+
+Now you can access Raspberry Pi 5 through SSH. Assuming username is raspberrypi (default), on MacOS or Linux you can use
+``` bash
+ssh raspberrypi@raspberrypi.local
+```
+to access Raspberry Pi if it is one the same network as computer.
 
 ## Hardware:
 1. Assemble cubes (3d printing, soldering and flashing software on ATTiny85).
