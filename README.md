@@ -111,7 +111,12 @@ It is convenient to use Arduino UNO via Arduino As ISP to program ATTiny 85
 2. Assemble the base.
 3D print base, then put in poweroff button and power status LED. Mount Raspberry Pi in place with 2 M3x6mm flathead bolts (M3 bolts used everywhere). Solder the 70x90 mm perf board with 2 I2C multiplexers and a level shifter and screw it in with a 3d-printed frame and four M3x6mm flathead bolts. Put header pins in corresponding openings in base lid and solder 30 cm wires with female ports at the other end. Wire everything accordingly. Screw on the lid with eight M3x10mm flathead bolts.
 
-3. You should be good to go unless any major mistakes were made in the process!
+Here is the circuit diagram for base:
+![Failed to load image](Images/schematic.png)
+
+(I2C channels 0-7 of multiplexer U1 are connected to voxel slots 0-7, I2C channels 0-7 of multiplexer U2 are connected to voxel slots 8-15)
+
+4. You should be good to go unless any major mistakes were made in the process!
 
 # Usage
 1. Now if you have at least two cubes, you can program one to be source and the other to be a detector with an Arduino Uno or Nano via I2C (see cube_attiny85.ino and test_write.ino for programming via I2C).
