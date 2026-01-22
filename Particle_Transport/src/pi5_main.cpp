@@ -95,7 +95,11 @@ int main() {
 
     Material air_mat = getM_Air();
 
+    IsotopeSample testSample = getS_Sr90();  // DELETE LINE IN FINAL IMPLEMENTATION
+    Voxel testSampleVoxel(SOURCE, air_mat, testSample);  // DELETE LINE IN FINAL IMPLEMENTATION
+
     vector<Voxel*> scene = createAirFilledScene(48);
+    scene[6] = &testSampleVoxel;  // DELETE LINE IN FINAL IMPLEMENTATION
     world.setScene(scene);
 
     const char* dev = "/dev/i2c-1";
