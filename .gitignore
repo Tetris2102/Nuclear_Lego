@@ -1,2 +1,3 @@
 # Ignore build directories
 Particle_Transport/build/
+.DS_Store
