@@ -35,22 +35,33 @@ cmake ..
 make
 ```
 
-3. Make the executable launch at startup
+3. Ensure the executable has sufficient permissions
 ``` bash
-mkdir -p ~/.config/autostart
-nano ~/.config/autostart/nuclear_lego.desktop
+sudo chmod +x ~/GitHub/Particle_Transport/build/nuclear_lego
 ```
+
+4. Create systemd service to make the executable launch on system boot
+``` bash
+sudo nano /etc/systemd/system/nuclear_lego.system
+```
+
 Then paste the following into editor:
 ```
-[Desktop Entry]
-Encoding=UTF-8
-Type=Application
-Comment=Start nuclear lego executable in terminal
-Exec=lxterminal -e ~/GitHub/Nuclear_Lego/Particle_Transport/build/nuclear_lego
-Hidden=false
-Name=Nuclear Lego
-StartupNotify=true
-Terminal=true
+[Unit]
+Description=Nuclear Lego main executable
+After=network.target
+
+[Service]
+ExecStart=~/GitHub/Particle_Transport/build/nuclear_lego
+
+[Install]
+WantedBy=multi-user.target
+```
+Then save, exit and run the following:
+``` bash
+sudo systemctl daemon-reload
+sudo systemctl enable nuclear_lego.service
+sudo systemctl start nuclear_lego.service
 ```
 
 5. Set poweroff button and make it act on the first press
