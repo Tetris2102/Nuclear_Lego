@@ -39,10 +39,20 @@ vector<Voxel*> createAirFilledScene(int size) {
 }
 
 Material getMaterialFromInt(uint8_t idx) {
+    if(idx >= materials.size()) {
+        cerr << "Error: Material index " << (int)idx << " out of bounds (size: "
+             << materials.size() << ")" << endl;
+        return getM_Air();  // Return default material
+    }
     return materials[idx];
 }
 
 IsotopeSample getSampleFromInt(uint8_t idx) {
+    if(idx >= isotopeSamples.size()) {
+        cerr << "Error: IsotopeSample index " << (int)idx << " out of bounds (size: "
+             << isotopeSamples.size() << ")" << endl;
+        return getS_NULL();  // Return default sample
+    }
     return isotopeSamples[idx];
 }
 
@@ -59,9 +69,50 @@ vector<ParticleType> partsListFromInt(uint8_t val) {
 void recordCubeDataTo(vector<Voxel*>& sceneToWrite,
   array<uint8_t, 5>& cubeData, int x, int y) {
     uint8_t z = cubeData[4];
+
+    // Safety check: ensure worldPtr is initialized
+    if(worldPtr == nullptr) {
+        cerr << "Error: worldPtr is nullptr in recordCubeDataTo()" << endl;
+        return;
+    }
+
+    // Validate z coordinate (world is 4x4x3, so z must be 0, 1, or 2)
+    if(z >= 4) {
+        cerr << "Warning: Invalid z coordinate " << (int)z
+             << " from cube at (" << x << ", " << y << ")" << endl;
+        return;
+    }
+
+    // Validate x and y coordinates
+    if(x < 0 || x >= 4 || y < 0 || y >= 4) {
+        cerr << "Warning: Invalid coordinates ("
+            << x << ", " << y << ", " << (int)z << ")" << endl;
+        return;
+    }
+
     auto voxelEntryPtr = worldPtr->voxelEntryAt(x, y, z);
+    if(voxelEntryPtr == nullptr) {
+        cerr << "Error: voxelEntryAt() returned nullptr for ("
+             << x << ", " << y << ", " << (int)z << ")" << endl;
+        return;
+    }
+
+    if(voxelEntryPtr->vPtr == nullptr) {
+        cerr << "Error: vPtr is nullptr for voxel at ("
+             << x << ", " << y << ", " << (int)z << ")" << endl;
+        return;
+    }
+
     auto* voxelPtr = voxelEntryPtr->vPtr;
     VoxelType voxelType = static_cast<VoxelType>(cubeData[0]);
+
+    // // Don't overwrite manually configured detectors (preserve test detectors)
+    // // Only update if the cube is actually configured as a detector in hardware
+    // if(voxelPtr->getType() == DETECTOR && voxelType != DETECTOR) {
+    //     // Skip overwriting - preserve existing detector configuration
+    //     return;
+    // }
+    
     voxelPtr->setType(voxelType);
     voxelPtr->setMaterial(getMaterialFromInt(cubeData[1]));
     if(voxelType == DETECTOR) {
@@ -100,7 +151,20 @@ int main() {
 
     vector<Voxel*> scene = createAirFilledScene(48);
     scene[6] = &testSampleVoxel;  // DELETE LINE IN FINAL IMPLEMENTATION
+    // scene[6] is at position (2, 1, 0) for 4x4x3 world: index = x + 4*(y + 3*z) = 2 + 4*(1 + 0) = 6
+
+    // Create a test detector near the source (at position 7 = (3, 1, 0))
+    Voxel testDetectorVoxel(DETECTOR, air_mat);
+    scene[7] = &testDetectorVoxel;  // DELETE LINE IN FINAL IMPLEMENTATION
     world.setScene(scene);
+
+    // Configure detector to detect beta particles (Sr90 emits beta)
+    auto* detectorEntry = world.voxelEntryAt(3, 1, 0);
+    if(detectorEntry) {
+        vector<ParticleType> detectable = {BETA};
+        detectorEntry->setPartsDetectable(detectable);
+        cout << "Configured detector at (3, 1, 0) to detect BETA particles" << endl;
+    }
 
     const char* dev = "/dev/i2c-1";
 
@@ -161,7 +225,7 @@ int main() {
                         if(bytesRead == 5) {
                             recordCubeDataTo(scene, currentCubeData, x, y);
                         } else if(bytesRead > 0) {
-                            cerr << "Warning: Only read " << bytesRead 
+                            cerr << "Warning: Only read " << bytesRead
                                 << " bytes from 0x" << hex << (int)i2c_addr << endl;
                         }
                     }
@@ -197,7 +261,7 @@ int main() {
                         if(bytesRead == 5) {
                             recordCubeDataTo(scene, currentCubeData, x, y);
                         } else if(bytesRead > 0) {
-                            cerr << "Warning: Only read " << bytesRead 
+                            cerr << "Warning: Only read " << bytesRead
                                 << " bytes from 0x" << hex << (int)i2c_addr << endl;
                         }
                     }
@@ -214,7 +278,7 @@ int main() {
 
                 } else {
 
-                    cerr << "Error: Invalid multiplexer channel number: " 
+                    cerr << "Error: Invalid multiplexer channel number: "
                         << muxChannelNum << endl;
 
                 }
@@ -249,7 +313,7 @@ int main() {
                     cerr << "Error: Failed to set MUX1 slave address" << endl;
                     continue;
                 }
-                muxData = 1 << muxChannelNum;
+                muxData = 1 << (muxChannelNum - 1);  // Convert 1-8 to 0-7
                 if(write(fd, &muxData, 1) < 1) {
                     cerr << "Error: Failed to write to MUX1" << endl;
                     continue;
@@ -258,7 +322,7 @@ int main() {
 
                 // Write activity to the specific level
                 if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) {
-                    cerr << "Error: Failed to set slave address 0x" 
+                    cerr << "Error: Failed to set slave address 0x"
                         << hex << (int)i2c_addr << endl;
                     continue;
                 }
@@ -292,7 +356,7 @@ int main() {
 
                 // Write activity to the specific level
                 if(ioctl(fd, I2C_SLAVE, i2c_addr) < 0) {
-                    cerr << "Error: Failed to set slave address 0x" 
+                    cerr << "Error: Failed to set slave address 0x"
                         << hex << (int)i2c_addr << endl;
                     continue;
                 }
@@ -312,7 +376,7 @@ int main() {
 
             } else {
 
-                cerr << "Error: Invalid multiplexer channel number: " 
+                cerr << "Error: Invalid multiplexer channel number: "
                     << muxChannelNum << endl;
 
             }
